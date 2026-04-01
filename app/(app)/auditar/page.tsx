@@ -7,6 +7,12 @@ import { ScoreBadge } from '@/components/ScoreBadge'
 import { cn } from '@/lib/utils'
 import { Link2, Code2, Upload, ArrowRight, GitBranch } from 'lucide-react'
 
+function normalizeUrl(u: string): string {
+  const t = u.trim()
+  if (!t || /^https?:\/\//i.test(t)) return t
+  return `https://${t}`
+}
+
 type Mode = 'url' | 'code' | 'file'
 
 const MODES = [
@@ -69,8 +75,8 @@ export default function AuditarPage() {
     }
 
     if (mode === 'url') {
-      body.url = url
-      if (githubUrl) body.github_url = githubUrl
+      body.url = normalizeUrl(url)
+      if (githubUrl) body.github_url = normalizeUrl(githubUrl)
       setTimeout(() => setLoadingStep(1), 900)
     } else if (mode === 'code') {
       body.code = code
@@ -173,7 +179,7 @@ export default function AuditarPage() {
                       URL do artefato <span className="text-red-500">*</span>
                     </label>
                     <input
-                      type="url"
+                      type="text"
                       value={url}
                       onChange={e => setUrl(e.target.value)}
                       placeholder="https://meu-projeto.lovable.app ou github.com/org/repo"
@@ -190,7 +196,7 @@ export default function AuditarPage() {
                       GitHub do projeto (opcional)
                     </label>
                     <input
-                      type="url"
+                      type="text"
                       value={githubUrl}
                       onChange={e => setGithubUrl(e.target.value)}
                       placeholder="https://github.com/org/repo — se Lovable/Vercel tiver repo vinculado"

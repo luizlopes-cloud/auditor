@@ -2,23 +2,25 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Search, ClipboardList } from 'lucide-react'
+import { LayoutDashboard, Search, ClipboardList, BookOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Image from 'next/image'
 
 const links = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/auditar', label: 'Auditar', icon: Search },
   { href: '/laudos', label: 'Laudos', icon: ClipboardList },
+  { href: '/catalog', label: 'Catálogo', icon: BookOpen },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-[200px] shrink-0 border-r border-slate-200 bg-white flex flex-col h-screen sticky top-0">
-      <div className="p-5 border-b border-slate-200">
-        <p className="text-xs font-semibold tracking-widest text-blue-600 uppercase">Auditor</p>
-        <p className="text-xs text-slate-400 mt-0.5">Seazone</p>
+    <aside className="w-[220px] shrink-0 border-r border-border bg-white flex flex-col h-screen sticky top-0">
+      <div className="px-5 py-4 border-b border-border">
+        <Image src="/seazone-logo.svg" alt="Seazone" width={100} height={17} priority />
+        <p className="text-[11px] font-semibold text-primary mt-2 tracking-widest uppercase">Auditor</p>
       </div>
 
       <nav className="flex-1 p-3 space-y-1">

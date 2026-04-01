@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Search, ArrowRight, CheckCircle2, FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -168,13 +169,10 @@ export default function CatalogPage() {
       {/* Header — igual ao da Renata */}
       <header className="border-b border-slate-100 px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
-              <CheckCircle2 className="h-4 w-4 text-white" />
-            </div>
-            <span className="font-semibold text-foreground">Auditor</span>
-            <span className="text-slate-300">·</span>
-            <span className="text-sm text-slate-500">Seazone</span>
+          <div className="flex items-center gap-3">
+            <Image src="/seazone-logo.svg" alt="Seazone" width={90} height={15} />
+            <span className="text-slate-200">|</span>
+            <span className="text-sm font-semibold text-primary">Auditor</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/dashboard" className="text-sm text-slate-500 hover:text-foreground transition-colors">

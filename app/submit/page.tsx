@@ -2,10 +2,18 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { AnalysisLoading } from '@/components/AnalysisLoading'
 import { ScoreBadge } from '@/components/ScoreBadge'
 import { ArrowRight, Link2, Code2, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+
+function normalizeUrl(u: string): string {
+  const trimmed = u.trim()
+  if (!trimmed) return trimmed
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
 
 type Mode = 'url' | 'code'
 
@@ -50,8 +58,8 @@ export default function SubmitPage() {
     }
 
     if (mode === 'url') {
-      body.url = url
-      if (githubUrl) body.github_url = githubUrl
+      body.url = normalizeUrl(url)
+      if (githubUrl) body.github_url = normalizeUrl(githubUrl)
       setTimeout(() => setLoadingStep(1), 900)
     } else {
       body.code = code
@@ -80,13 +88,10 @@ export default function SubmitPage() {
       {/* Header */}
       <header className="border-b border-slate-100 px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
-              <CheckCircle2 className="h-4 w-4 text-white" />
-            </div>
-            <span className="font-semibold text-foreground">Auditor</span>
-            <span className="text-slate-300">·</span>
-            <span className="text-sm text-slate-500">Seazone</span>
+          <div className="flex items-center gap-3">
+            <Image src="/seazone-logo.svg" alt="Seazone" width={90} height={15} />
+            <span className="text-slate-200">|</span>
+            <span className="text-sm font-semibold text-primary">Auditor</span>
           </div>
           <a href="/dashboard" className="text-sm text-slate-500 hover:text-foreground transition-colors">
             Ver dashboard
@@ -181,7 +186,7 @@ export default function SubmitPage() {
                   <div className="space-y-3">
                     <div className="relative">
                       <input
-                        type="url"
+                        type="text"
                         value={url}
                         onChange={e => setUrl(e.target.value)}
                         required
@@ -195,7 +200,7 @@ export default function SubmitPage() {
                       )}
                     </div>
                     <input
-                      type="url"
+                      type="text"
                       value={githubUrl}
                       onChange={e => setGithubUrl(e.target.value)}
                       placeholder="GitHub do projeto (opcional, se Lovable/Vercel)"
