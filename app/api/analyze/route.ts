@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { analyzeArtifact } from '@/lib/analyzer'
 import { buildAnalysisContext, detectArtifactType, parseFileContent } from '@/lib/parser'
 import { fetchRepoContent, parseGitHubUrl } from '@/lib/github'
-import { detectUrlType, fetchUrlContent } from '@/lib/url-fetcher'
+import { detectUrlType, fetchUrlContent, detectEditorUrl } from '@/lib/url-fetcher'
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,6 +28,10 @@ export async function POST(req: NextRequest) {
     // ── MODE: URL ───────────────────────────────────────────────────────────
     if (mode === 'url') {
       if (!url?.trim()) return NextResponse.json({ error: 'URL é obrigatória' }, { status: 400 })
+
+      // Bloqueia URLs de editores — não são apps deployadas
+      const editorError = detectEditorUrl(url)
+      if (editorError) return NextResponse.json({ error: editorError }, { status: 400 })
 
       const urlType = detectUrlType(url)
 

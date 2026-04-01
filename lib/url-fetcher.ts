@@ -1,5 +1,44 @@
 export type UrlType = 'github-repo' | 'github-file' | 'lovable' | 'vercel' | 'external'
 
+// Retorna mensagem de erro se for URL de editor (não deployada), null se for válida
+export function detectEditorUrl(url: string): string | null {
+  let parsed: URL
+  try { parsed = new URL(url) } catch { return null }
+
+  const host = parsed.hostname.toLowerCase()
+  const path = parsed.pathname.toLowerCase()
+
+  // Lovable editor: lovable.dev/projects/... ou lovable.dev sem subdomínio
+  if (host === 'lovable.dev' || host === 'www.lovable.dev') {
+    if (path.startsWith('/projects')) {
+      return 'Este é o link do editor Lovable, não da aplicação publicada. Abra o projeto no Lovable, clique em "Share" e cole o link da app (ex: meu-projeto.lovable.app).'
+    }
+    return 'URL inválida para análise. Cole o link da aplicação publicada (ex: meu-projeto.lovable.app), não do editor.'
+  }
+
+  // V0 editor: v0.dev
+  if (host === 'v0.dev' || host === 'www.v0.dev') {
+    return 'Este é o link do editor V0. Para analisar, faça o deploy da aplicação e cole o link deployado.'
+  }
+
+  // Bolt editor: bolt.new
+  if (host === 'bolt.new' || host === 'www.bolt.new') {
+    return 'Este é o link do editor Bolt. Para analisar, faça o deploy da aplicação e cole o link deployado.'
+  }
+
+  // GitHub editor web (github.dev)
+  if (host === 'github.dev' || host.endsWith('.github.dev')) {
+    return 'Este é o editor web do GitHub. Use o link do repositório (github.com/org/repo) ou da aplicação deployada.'
+  }
+
+  // Figma
+  if (host === 'figma.com' || host === 'www.figma.com') {
+    return 'Links do Figma são arquivos de design, não aplicações. Submeta o link da aplicação deployada ou cole o código.'
+  }
+
+  return null
+}
+
 export interface FetchedUrl {
   type: UrlType
   content: string
