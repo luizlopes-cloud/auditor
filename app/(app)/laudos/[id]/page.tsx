@@ -1,10 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
 import { ScoreBadge } from '@/components/ScoreBadge'
 import { CheckItem } from '@/components/CheckItem'
-import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion, ArrowLeft, ExternalLink } from 'lucide-react'
+import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion, ArrowLeft, ExternalLink, Trash2 } from 'lucide-react'
 import Link from 'next/link'
-import type { Json } from '@/types/database'
 
 type Check = {
   categoria: string
@@ -38,116 +39,199 @@ const sourceLabel: Record<string, string> = {
   url: 'URL deployada',
 }
 
-interface PageProps {
-  params: Promise<{ id: string }>
-}
+export default function LaudoDetailPage() {
+  const router = useRouter()
+  const params = useParams()
+  const id = params.id as string
 
-export default async function LaudoDetailPage({ params }: PageProps) {
-  const { id } = await params
-  const supabase = await createClient()
+  const [laudo, setLaudo] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
-  const { data: laudo } = await supabase
-    .from('laudos')
-    .select(`*, artifacts (*)`)
-    .eq('id', id)
-    .maybeSingle()
+  useEffect(() => {
+    fetch(`/api/laudos/${id}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) setError(data.error)
+        else setLaudo(data.laudo)
+      })
+      .catch(() => setError('Erro ao carregar laudo'))
+      .finally(() => setLoading(false))
+  }, [id])
 
-  if (!laudo) notFound()
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/laudos/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        router.push('/laudos')
+      } else {
+        const data = await res.json()
+        setError(data.error ?? 'Erro ao deletar laudo')
+        setConfirmDelete(false)
+      }
+    } catch {
+      setError('Erro de conexão ao deletar')
+      setConfirmDelete(false)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-8 max-w-3xl mx-auto">
+        <div className="h-6 w-32 bg-muted rounded animate-pulse mb-6" />
+        <div className="bg-card rounded-xl border border-border p-6 mb-6 animate-pulse">
+          <div className="flex gap-4">
+            <div className="h-12 w-12 rounded-xl bg-muted" />
+            <div className="flex-1 space-y-2">
+              <div className="h-5 w-2/3 bg-muted rounded" />
+              <div className="h-4 w-1/2 bg-muted rounded" />
+            </div>
+          </div>
+        </div>
+        <div className="bg-card rounded-xl border border-border p-6 animate-pulse">
+          <div className="h-8 w-1/3 bg-muted rounded mb-4" />
+          <div className="h-4 w-full bg-muted rounded mb-2" />
+          <div className="h-4 w-4/5 bg-muted rounded" />
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !laudo) {
+    return (
+      <div className="p-8 max-w-3xl mx-auto">
+        <Link href="/laudos" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6">
+          <ArrowLeft className="h-4 w-4" />
+          Voltar para laudos
+        </Link>
+        <div className="rounded-lg border border-red-800/50 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+          {error ?? 'Laudo não encontrado'}
+        </div>
+      </div>
+    )
+  }
 
   const artifact = Array.isArray(laudo.artifacts) ? laudo.artifacts[0] : laudo.artifacts
-  if (!artifact) notFound()
-
-  const checks = (laudo.checks as Json as Check[]) ?? []
-  const categories = [...new Set(checks.map(c => c.categoria))]
-
-  const Icon = typeIcon[artifact.type] ?? FileQuestion
+  const checks = (laudo.checks as Check[]) ?? []
+  const categories = [...new Set(checks.map((c: Check) => c.categoria))]
+  const Icon = typeIcon[artifact?.type] ?? FileQuestion
   const date = new Date(laudo.created_at ?? '').toLocaleDateString('pt-BR', {
     day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
   })
 
   return (
     <div className="p-8 max-w-3xl mx-auto">
-      {/* Back */}
-      <Link href="/laudos" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 mb-6">
+      <Link href="/laudos" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6">
         <ArrowLeft className="h-4 w-4" />
         Voltar para laudos
       </Link>
 
       {/* Header */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+      <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6">
         <div className="flex items-start gap-4">
-          <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-            <Icon className="h-6 w-6 text-slate-500" />
+          <div className="h-12 w-12 rounded-xl bg-muted flex items-center justify-center shrink-0">
+            <Icon className="h-6 w-6 text-muted-foreground" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-slate-900 truncate">{artifact.name}</h1>
+            <h1 className="text-xl font-bold text-foreground truncate">{artifact?.name}</h1>
             <div className="flex flex-wrap items-center gap-3 mt-1">
-              <span className="text-sm text-slate-500">{typeLabel[artifact.type] ?? 'Outro'}</span>
-              <span className="text-slate-300">·</span>
-              <span className="text-sm text-slate-500">{artifact.submitted_by}</span>
-              <span className="text-slate-300">·</span>
-              <span className="text-sm text-slate-500">{date}</span>
+              <span className="text-sm text-muted-foreground">{typeLabel[artifact?.type] ?? 'Outro'}</span>
+              <span className="text-border">·</span>
+              <span className="text-sm text-muted-foreground">{artifact?.submitted_by}</span>
+              <span className="text-border">·</span>
+              <span className="text-sm text-muted-foreground">{date}</span>
             </div>
-            {artifact.description && (
-              <p className="mt-2 text-sm text-slate-600">{artifact.description}</p>
+            {artifact?.description && (
+              <p className="mt-2 text-sm text-muted-foreground">{artifact.description}</p>
             )}
           </div>
+          {/* Delete button */}
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="shrink-0 p-2 text-muted-foreground/40 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors"
+              title="Remover laudo"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          ) : (
+            <div className="shrink-0 flex items-center gap-2">
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-3 py-1.5 bg-red-700 text-white text-xs font-medium rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+              >
+                {deleting ? 'Removendo...' : 'Confirmar'}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                className="px-3 py-1.5 border border-border text-muted-foreground text-xs font-medium rounded-lg hover:bg-accent transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Links */}
         <div className="mt-4 flex flex-wrap gap-3">
-          {artifact.github_url && (
+          {artifact?.github_url && (
             <a href={artifact.github_url} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800">
+              className="inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary/80">
               <ExternalLink className="h-3.5 w-3.5" />
               Ver no GitHub
             </a>
           )}
-          {artifact.source_url && (
+          {artifact?.source_url && (
             <a href={artifact.source_url} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800">
+              className="inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary/80">
               <ExternalLink className="h-3.5 w-3.5" />
               Ver aplicação
             </a>
           )}
-          <span className="text-xs text-slate-400">{sourceLabel[artifact.source] ?? artifact.source}</span>
+          <span className="text-xs text-muted-foreground/60">{sourceLabel[artifact?.source] ?? artifact?.source}</span>
           {laudo.model_used && (
-            <span className="text-xs text-slate-400">· {laudo.model_used}</span>
+            <span className="text-xs text-muted-foreground/60">· {laudo.model_used}</span>
           )}
           {laudo.tempo_analise_ms && (
-            <span className="text-xs text-slate-400">· {(laudo.tempo_analise_ms / 1000).toFixed(1)}s</span>
+            <span className="text-xs text-muted-foreground/60">· {(laudo.tempo_analise_ms / 1000).toFixed(1)}s</span>
           )}
         </div>
       </div>
 
       {/* Score + Resultado */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
+      <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6">
         <ScoreBadge
           resultado={laudo.resultado as 'aprovado' | 'ajustes_necessarios' | 'reprovado'}
           score={laudo.score ?? 0}
           showBar
           size="lg"
         />
-        <p className="mt-4 text-slate-700">{laudo.resumo}</p>
+        <p className="mt-4 text-foreground/80">{laudo.resumo}</p>
       </div>
 
       {/* Checks por categoria */}
       <div className="space-y-6">
         {categories.map(categoria => {
-          const categoryChecks = checks.filter(c => c.categoria === categoria)
-          const hasError = categoryChecks.some(c => c.status === 'erro')
-          const hasWarning = categoryChecks.some(c => c.status === 'aviso')
+          const categoryChecks = checks.filter((c: Check) => c.categoria === categoria)
+          const hasError = categoryChecks.some((c: Check) => c.status === 'erro')
+          const hasWarning = categoryChecks.some((c: Check) => c.status === 'aviso')
 
           return (
             <div key={categoria}>
               <div className="flex items-center gap-2 mb-2">
-                <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">{categoria}</h2>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{categoria}</h2>
                 {hasError && <span className="h-2 w-2 rounded-full bg-red-500" />}
                 {!hasError && hasWarning && <span className="h-2 w-2 rounded-full bg-amber-400" />}
                 {!hasError && !hasWarning && <span className="h-2 w-2 rounded-full bg-emerald-400" />}
               </div>
               <div className="space-y-2">
-                {categoryChecks.map((check, i) => (
+                {categoryChecks.map((check: Check, i: number) => (
                   <CheckItem key={i} {...check} />
                 ))}
               </div>

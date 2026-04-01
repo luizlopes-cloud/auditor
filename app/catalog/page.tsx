@@ -34,43 +34,43 @@ const TYPE_CONFIG: Record<ArtifactType, {
   script: {
     label: 'Script',
     icon: FileCode2,
-    gradient: 'from-blue-500 to-blue-700',
-    badge: 'bg-blue-600/90 text-white',
+    gradient: 'from-blue-600 to-blue-900',
+    badge: 'bg-blue-500/80 text-white',
     badgeText: 'Script',
   },
   planilha: {
     label: 'Planilha',
     icon: FileSpreadsheet,
-    gradient: 'from-emerald-500 to-emerald-700',
-    badge: 'bg-emerald-600/90 text-white',
+    gradient: 'from-emerald-600 to-emerald-900',
+    badge: 'bg-emerald-500/80 text-white',
     badgeText: 'Planilha',
   },
   flow: {
     label: 'Flow',
     icon: GitBranch,
-    gradient: 'from-purple-500 to-purple-700',
-    badge: 'bg-purple-600/90 text-white',
+    gradient: 'from-purple-600 to-purple-900',
+    badge: 'bg-purple-500/80 text-white',
     badgeText: 'Flow',
   },
   dashboard: {
     label: 'Dashboard',
     icon: LayoutDashboard,
-    gradient: 'from-amber-400 to-amber-600',
-    badge: 'bg-amber-500/90 text-white',
+    gradient: 'from-amber-500 to-amber-800',
+    badge: 'bg-amber-500/80 text-white',
     badgeText: 'Dashboard',
   },
   query: {
     label: 'Query',
     icon: Database,
-    gradient: 'from-orange-500 to-orange-700',
-    badge: 'bg-orange-600/90 text-white',
+    gradient: 'from-orange-600 to-orange-900',
+    badge: 'bg-orange-500/80 text-white',
     badgeText: 'Query SQL',
   },
   outro: {
     label: 'Outro',
     icon: FileQuestion,
-    gradient: 'from-slate-400 to-slate-600',
-    badge: 'bg-slate-600/90 text-white',
+    gradient: 'from-slate-500 to-slate-800',
+    badge: 'bg-slate-500/80 text-white',
     badgeText: 'Outro',
   },
 }
@@ -91,38 +91,33 @@ function ArtifactCard({ item }: { item: CatalogItem }) {
 
   return (
     <Link href={`/laudos/${item.id}`} className="group block">
-      <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 border border-slate-100 hover:border-slate-200">
-        {/* Card header — colored area (como as fotos da Renata) */}
+      <div className="bg-card rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 border border-border hover:border-primary/30">
         <div className={cn('relative h-36 bg-gradient-to-br flex items-center justify-center', cfg.gradient)}>
-          {/* Badge — top-left, igual posição da Renata */}
           <span className={cn('absolute top-3 left-3 px-2.5 py-1 rounded-md text-xs font-semibold backdrop-blur-sm', cfg.badge)}>
             {cfg.badgeText}
           </span>
-          {/* Aprovado badge — top-right */}
-          <span className="absolute top-3 right-3 flex items-center gap-1 bg-white/20 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded-md">
+          <span className="absolute top-3 right-3 flex items-center gap-1 bg-black/20 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded-md">
             <CheckCircle2 className="h-3 w-3" />
             Aprovado
           </span>
-          <Icon className="h-12 w-12 text-white/30" />
+          <Icon className="h-12 w-12 text-white/20" />
         </div>
 
-        {/* Card body */}
         <div className="p-5">
           <h3 className="font-semibold text-foreground text-sm leading-snug truncate group-hover:text-primary transition-colors">
             {art.name}
           </h3>
-          <p className="text-xs text-slate-500 mt-0.5 mb-3">
+          <p className="text-xs text-muted-foreground mt-0.5 mb-3">
             {art.submitted_by}
           </p>
-          <p className="text-sm text-slate-600 line-clamp-2 leading-relaxed">
+          <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
             {art.description ?? item.resumo}
           </p>
         </div>
 
-        {/* Card footer — "Conhecer" igual à Renata */}
         <div className="px-5 pb-5">
-          <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-            <span className="text-xs text-slate-400">
+          <div className="flex items-center justify-between pt-3 border-t border-border">
+            <span className="text-xs text-muted-foreground/60">
               {new Date(item.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
             </span>
             <span className="flex items-center gap-1 text-xs font-semibold text-primary group-hover:gap-2 transition-all">
@@ -165,17 +160,16 @@ export default function CatalogPage() {
   })
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header — igual ao da Renata */}
-      <header className="border-b border-slate-100 px-6 py-4">
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/seazone-logo.svg" alt="Seazone" width={90} height={15} />
-            <span className="text-slate-200">|</span>
+            <Image src="/seazone-logo.svg" alt="Seazone" width={90} height={15} className="brightness-0 invert opacity-90" />
+            <span className="text-border">|</span>
             <span className="text-sm font-semibold text-primary">Auditor</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-sm text-slate-500 hover:text-foreground transition-colors">
+            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Dashboard
             </Link>
             <Link
@@ -188,33 +182,30 @@ export default function CatalogPage() {
         </div>
       </header>
 
-      {/* Hero — mesmo padrão da Renata */}
-      <section className="px-6 py-14 text-center bg-gradient-to-b from-slate-50 to-white">
+      <section className="px-6 py-14 text-center">
         <div className="max-w-2xl mx-auto">
           <h1 className="text-4xl font-bold text-foreground leading-tight">
             Integrações e automações<br />
             <span className="text-primary">prontas para uso</span>
           </h1>
-          <p className="text-slate-500 mt-4 text-lg">
+          <p className="text-muted-foreground mt-4 text-lg">
             Artefatos homologados e aprovados pela equipe de tecnologia da Seazone.
           </p>
 
-          {/* Search bar — proeminente como na Renata */}
           <div className="relative mt-8 max-w-xl mx-auto">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/50" />
             <input
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar por nome, tipo ou descrição..."
-              className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 text-base placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary shadow-sm transition-all"
+              className="w-full pl-12 pr-4 py-4 rounded-2xl border border-border bg-card/60 text-base text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 shadow-sm transition-all"
             />
           </div>
         </div>
       </section>
 
-      {/* Filtros — tabs com underline azul, igual à Renata */}
-      <section className="sticky top-0 z-10 bg-white border-b border-slate-100 px-6">
+      <section className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border px-6">
         <div className="max-w-6xl mx-auto flex gap-0 overflow-x-auto">
           {FILTERS.map(f => (
             <button
@@ -224,7 +215,7 @@ export default function CatalogPage() {
                 'shrink-0 px-5 py-4 text-sm font-medium transition-all border-b-2',
                 filter === f.value
                   ? 'text-primary border-primary'
-                  : 'text-slate-500 border-transparent hover:text-foreground'
+                  : 'text-muted-foreground border-transparent hover:text-foreground'
               )}
             >
               {f.label}
@@ -233,24 +224,23 @@ export default function CatalogPage() {
         </div>
       </section>
 
-      {/* Grid */}
       <section className="px-6 py-10">
         <div className="max-w-6xl mx-auto">
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="rounded-2xl bg-slate-100 animate-pulse h-72" />
+                <div key={i} className="rounded-2xl bg-card animate-pulse h-72 border border-border" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-slate-400 text-lg">
+              <p className="text-muted-foreground text-lg">
                 {search ? `Nenhum resultado para "${search}"` : 'Nenhum artefato aprovado ainda.'}
               </p>
             </div>
           ) : (
             <>
-              <p className="text-sm text-slate-400 mb-6">
+              <p className="text-sm text-muted-foreground/60 mb-6">
                 {filtered.length} artefato{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

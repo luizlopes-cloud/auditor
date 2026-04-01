@@ -7,7 +7,6 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  /* Inter font — mesmo que o projeto da Renata */
   --font-sans: "Inter", var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
   --font-heading: var(--font-sans);
@@ -45,38 +44,34 @@
 }
 
 :root {
-  /* Seazone brand — extraído do projeto da Renata */
-  --seazone-blue: oklch(0.546 0.245 263);   /* hsl(220 100% 50%) */
-  --seazone-green: oklch(0.606 0.149 151);  /* hsl(152 69% 41%)  */
-  --seazone-gold: oklch(0.726 0.189 86);    /* hsl(38 92% 50%)   */
-
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.212 0.038 264);     /* hsl(220 40% 13%) — navy escuro */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.212 0.038 264);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.212 0.038 264);
-  --primary: oklch(0.546 0.245 263);        /* Seazone blue */
+  /* Dark navy — inspirado nas seções escuras do projeto da Renata */
+  --background: oklch(0.13 0.062 264);      /* #00143D deep navy */
+  --foreground: oklch(0.95 0.008 264);      /* off-white */
+  --card: oklch(0.18 0.058 264);            /* card surface — lighter navy */
+  --card-foreground: oklch(0.95 0.008 264);
+  --popover: oklch(0.18 0.058 264);
+  --popover-foreground: oklch(0.95 0.008 264);
+  --primary: oklch(0.62 0.245 263);         /* Seazone blue — mais brilhante no dark */
   --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.962 0.005 264);      /* hsl(220 20% 96%) */
-  --secondary-foreground: oklch(0.212 0.038 264);
-  --muted: oklch(0.962 0.005 264);
-  --muted-foreground: oklch(0.518 0.018 264);
-  --accent: oklch(0.945 0.012 264);
-  --accent-foreground: oklch(0.212 0.038 264);
+  --secondary: oklch(0.22 0.055 264);
+  --secondary-foreground: oklch(0.95 0.008 264);
+  --muted: oklch(0.21 0.055 264);           /* superfície muted */
+  --muted-foreground: oklch(0.62 0.03 264); /* texto secundário — azul-cinza */
+  --accent: oklch(0.24 0.058 264);
+  --accent-foreground: oklch(0.95 0.008 264);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.918 0.008 264);         /* hsl(220 13% 91%) — borda azulada */
-  --input: oklch(0.918 0.008 264);
-  --ring: oklch(0.546 0.245 263);           /* ring = primary */
-  --radius: 0.75rem;                        /* 12px — mesmo da Renata */
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.212 0.038 264);
-  --sidebar-primary: oklch(0.546 0.245 263);
+  --border: oklch(0.28 0.055 264);          /* borda sutil */
+  --input: oklch(0.24 0.055 264);
+  --ring: oklch(0.62 0.245 263);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.16 0.062 264);         /* sidebar ligeiramente mais escura */
+  --sidebar-foreground: oklch(0.95 0.008 264);
+  --sidebar-primary: oklch(0.62 0.245 263);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.945 0.012 264);
-  --sidebar-accent-foreground: oklch(0.212 0.038 264);
-  --sidebar-border: oklch(0.918 0.008 264);
-  --sidebar-ring: oklch(0.546 0.245 263);
+  --sidebar-accent: oklch(0.24 0.058 264);
+  --sidebar-accent-foreground: oklch(0.95 0.008 264);
+  --sidebar-border: oklch(0.28 0.055 264);
+  --sidebar-ring: oklch(0.62 0.245 263);
 }
 
 @layer base {

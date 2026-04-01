@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { LaudoCard } from '@/components/LaudoCard'
-import { ScoreBadge } from '@/components/ScoreBadge'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
@@ -63,11 +62,10 @@ export default async function LaudosPage({ searchParams }: PageProps) {
   return (
     <div className="p-8 max-w-6xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Laudos</h1>
-        <p className="text-slate-500 mt-1">Histórico de homologações</p>
+        <h1 className="text-2xl font-bold text-foreground">Laudos</h1>
+        <p className="text-muted-foreground mt-1">Histórico de homologações</p>
       </div>
 
-      {/* Filtros */}
       <div className="flex flex-wrap gap-2 mb-6">
         <div className="flex gap-1.5">
           {RESULTADO_OPTIONS.map(opt => (
@@ -76,15 +74,15 @@ export default async function LaudosPage({ searchParams }: PageProps) {
               href={buildUrl('resultado', opt.value)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 (resultado ?? '') === opt.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  ? 'bg-primary text-white'
+                  : 'bg-card border border-border text-muted-foreground hover:bg-accent hover:text-foreground'
               }`}
             >
               {opt.label}
             </Link>
           ))}
         </div>
-        <div className="h-6 w-px bg-slate-200 self-center mx-1" />
+        <div className="h-6 w-px bg-border self-center mx-1" />
         <div className="flex gap-1.5 flex-wrap">
           {TIPO_OPTIONS.map(opt => (
             <Link
@@ -92,8 +90,8 @@ export default async function LaudosPage({ searchParams }: PageProps) {
               href={buildUrl('tipo', opt.value)}
               className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                 (tipo ?? '') === opt.value
-                  ? 'bg-slate-800 text-white'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  ? 'bg-foreground/90 text-background'
+                  : 'bg-card border border-border text-muted-foreground hover:bg-accent hover:text-foreground'
               }`}
             >
               {opt.label}
@@ -102,9 +100,8 @@ export default async function LaudosPage({ searchParams }: PageProps) {
         </div>
       </div>
 
-      {/* Lista */}
       {!filtered?.length ? (
-        <div className="text-center py-16 text-slate-400">
+        <div className="text-center py-16 text-muted-foreground">
           Nenhum laudo encontrado com esses filtros.
         </div>
       ) : (

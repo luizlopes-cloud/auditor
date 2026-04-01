@@ -10,7 +10,7 @@ const STEPS = [
 ]
 
 interface AnalysisLoadingProps {
-  step?: number // 0, 1, 2 — controlled externally
+  step?: number
 }
 
 export function AnalysisLoading({ step = 0 }: AnalysisLoadingProps) {
@@ -25,35 +25,32 @@ export function AnalysisLoading({ step = 0 }: AnalysisLoadingProps) {
 
   return (
     <div className="flex flex-col items-center gap-6 py-12">
-      {/* Spinner */}
       <div className="relative h-16 w-16">
-        <div className="absolute inset-0 rounded-full border-4 border-slate-200" />
-        <div className="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
+        <div className="absolute inset-0 rounded-full border-4 border-border/40" />
+        <div className="absolute inset-0 rounded-full border-4 border-primary border-t-transparent animate-spin" />
       </div>
 
-      {/* Steps */}
       <div className="space-y-2 w-full max-w-xs">
         {STEPS.map((s, i) => (
           <div
             key={i}
             className={cn(
               'flex items-center gap-2 text-sm transition-all duration-300',
-              i < currentStep && 'text-emerald-600',
-              i === currentStep && 'text-slate-900 font-medium',
-              i > currentStep && 'text-slate-400',
+              i < currentStep && 'text-emerald-400',
+              i === currentStep && 'text-foreground font-medium',
+              i > currentStep && 'text-muted-foreground/50',
             )}
           >
             <span className="h-1.5 w-1.5 rounded-full shrink-0" style={{
-              background: i < currentStep ? '#10b981' : i === currentStep ? '#2563eb' : '#cbd5e1'
+              background: i < currentStep ? '#34d399' : i === currentStep ? 'var(--color-primary)' : 'var(--color-border)'
             }} />
             {s.label}
           </div>
         ))}
       </div>
 
-      {/* Progress bar */}
-      <div className="h-1.5 w-full max-w-xs rounded-full bg-slate-100 overflow-hidden">
-        <div className="h-full bg-blue-600 rounded-full animate-[progress_2s_ease-in-out_infinite]" />
+      <div className="h-1.5 w-full max-w-xs rounded-full bg-border/40 overflow-hidden">
+        <div className="h-full bg-primary rounded-full animate-[progress_2s_ease-in-out_infinite]" />
       </div>
     </div>
   )
