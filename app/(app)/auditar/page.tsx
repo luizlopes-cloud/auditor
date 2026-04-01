@@ -111,7 +111,7 @@ export default function AuditarPage() {
 
   const urlHint = detectUrlHint(url)
 
-  const inputCls = 'w-full rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-colors'
+  const inputCls = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-colors'
 
   return (
     <div className="p-8 max-w-2xl mx-auto">

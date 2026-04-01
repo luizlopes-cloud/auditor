@@ -199,7 +199,7 @@ export default function CatalogPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar por nome, tipo ou descrição..."
-              className="w-full pl-12 pr-4 py-4 rounded-2xl border border-border bg-card/60 text-base text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 shadow-sm transition-all"
+              className="w-full pl-12 pr-4 py-4 rounded-2xl border border-slate-200 bg-white text-base text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 shadow-sm transition-all"
             />
           </div>
         </div>

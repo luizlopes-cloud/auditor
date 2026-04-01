@@ -83,7 +83,7 @@ export default function SubmitPage() {
     }
   }
 
-  const inputCls = 'w-full rounded-xl border border-border bg-card/60 px-4 py-3.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all'
+  const inputCls = 'w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-all'
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
