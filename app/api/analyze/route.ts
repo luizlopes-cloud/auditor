@@ -1,0 +1,184 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { analyzeArtifact } from '@/lib/analyzer'
+import { buildAnalysisContext, detectArtifactType, parseFileContent } from '@/lib/parser'
+import { fetchRepoContent, parseGitHubUrl } from '@/lib/github'
+import { detectUrlType, fetchUrlContent } from '@/lib/url-fetcher'
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const { mode, url, github_url, code, file_name, file_content, name, description, submitted_by } = body
+
+    if (!submitted_by?.trim()) {
+      return NextResponse.json({ error: 'Campo "submitted_by" é obrigatório' }, { status: 400 })
+    }
+
+    const supabase = await createClient()
+    const start = Date.now()
+
+    let analysisContext = ''
+    let artifactName = name?.trim() || 'Sem nome'
+    let artifactType: 'planilha' | 'script' | 'dashboard' | 'flow' | 'query' | 'outro' = 'outro'
+    let artifactSource: 'upload' | 'github' | 'url' = 'upload'
+    let artifactContent = ''
+    let artifactGithubUrl: string | null = null
+    let artifactSourceUrl: string | null = null
+
+    // ── MODE: URL ───────────────────────────────────────────────────────────
+    if (mode === 'url') {
+      if (!url?.trim()) return NextResponse.json({ error: 'URL é obrigatória' }, { status: 400 })
+
+      const urlType = detectUrlType(url)
+
+      if (urlType === 'github-repo' || urlType === 'github-file') {
+        // GitHub direto
+        const repoContent = await fetchRepoContent(url)
+        artifactName = name?.trim() || parseGitHubUrl(url)?.repo || 'Repositório GitHub'
+        artifactType = 'script'
+        artifactSource = 'github'
+        artifactGithubUrl = url
+        artifactContent = repoContent.mainFiles.map(f => `// ${f.path}\n${f.content}`).join('\n\n')
+
+        analysisContext = buildAnalysisContext(
+          artifactName,
+          artifactContent,
+          description ?? '',
+          { url, language: repoContent.language, readme: repoContent.readme }
+        )
+        if (repoContent.packageJson) {
+          analysisContext += `\n### Dependências\n\`\`\`\n${repoContent.packageJson.slice(0, 2000)}\n\`\`\``
+        }
+      } else {
+        // Lovable / Vercel / externo
+        const fetched = await fetchUrlContent(url)
+        artifactSourceUrl = url
+        artifactSource = 'url'
+
+        const effectiveGithubUrl = github_url?.trim() || fetched.detectedGithubUrl
+        if (effectiveGithubUrl) {
+          // Priorizar análise do código-fonte GitHub
+          try {
+            const repoContent = await fetchRepoContent(effectiveGithubUrl)
+            artifactGithubUrl = effectiveGithubUrl
+            artifactContent = repoContent.mainFiles.map(f => `// ${f.path}\n${f.content}`).join('\n\n')
+            artifactName = name?.trim() || fetched.title || parseGitHubUrl(effectiveGithubUrl)?.repo || 'Aplicação'
+            artifactType = 'script'
+            artifactSource = 'github'
+
+            analysisContext = buildAnalysisContext(
+              artifactName,
+              artifactContent,
+              description ?? '',
+              { url: effectiveGithubUrl, language: repoContent.language, readme: repoContent.readme }
+            )
+            analysisContext += `\n\n**URL do artefato deployado:** ${url}`
+            if (repoContent.packageJson) {
+              analysisContext += `\n### Dependências\n\`\`\`\n${repoContent.packageJson.slice(0, 2000)}\n\`\`\``
+            }
+          } catch {
+            // Fallback para HTML
+            artifactContent = fetched.content
+            artifactName = name?.trim() || fetched.title || 'Aplicação'
+            analysisContext = `## Artefato: ${artifactName}\n**URL:** ${url}\n**Tipo detectado:** ${urlType}\n${fetched.content}`
+          }
+        } else {
+          artifactContent = fetched.content
+          artifactName = name?.trim() || fetched.title || 'Aplicação'
+          analysisContext = `## Artefato: ${artifactName}\n**URL:** ${url}\n**Tipo detectado:** ${urlType}\n\n${fetched.content}`
+          if (description) analysisContext = `**Objetivo declarado:** ${description}\n\n` + analysisContext
+        }
+      }
+
+    // ── MODE: CODE ─────────────────────────────────────────────────────────
+    } else if (mode === 'code') {
+      if (!code?.trim()) return NextResponse.json({ error: 'Conteúdo do código é obrigatório' }, { status: 400 })
+      if (code.trim().length < 10) return NextResponse.json({ error: 'Conteúdo muito curto para analisar' }, { status: 400 })
+
+      const fn = file_name?.trim() || 'codigo.txt'
+      const parsed = parseFileContent(fn, code)
+      artifactName = name?.trim() || fn
+      artifactType = parsed.type
+      artifactContent = parsed.text
+      artifactSource = 'upload'
+
+      analysisContext = buildAnalysisContext(artifactName, artifactContent, description ?? '')
+
+    // ── MODE: FILE ─────────────────────────────────────────────────────────
+    } else if (mode === 'file') {
+      if (!file_content?.trim()) return NextResponse.json({ error: 'Conteúdo do arquivo é obrigatório' }, { status: 400 })
+      if (!file_name?.trim()) return NextResponse.json({ error: 'Nome do arquivo é obrigatório' }, { status: 400 })
+
+      const parsed = parseFileContent(file_name, file_content)
+      artifactName = name?.trim() || file_name
+      artifactType = parsed.type
+      artifactContent = parsed.text
+      artifactSource = 'upload'
+
+      analysisContext = buildAnalysisContext(artifactName, artifactContent, description ?? '')
+
+    } else {
+      return NextResponse.json({ error: 'Modo inválido. Use: url, code ou file' }, { status: 400 })
+    }
+
+    // ── Persistir artefato ─────────────────────────────────────────────────
+    const { data: artifact, error: artifactError } = await supabase
+      .from('artifacts')
+      .insert({
+        name: artifactName,
+        type: artifactType,
+        source: artifactSource,
+        source_url: artifactSourceUrl,
+        github_url: artifactGithubUrl,
+        content: artifactContent.slice(0, 20000),
+        description: description ?? null,
+        submitted_by: submitted_by.trim(),
+        status: 'analyzing',
+      })
+      .select()
+      .single()
+
+    if (artifactError || !artifact) {
+      console.error('[analyze] artifact insert error:', artifactError)
+      return NextResponse.json({ error: 'Erro ao salvar artefato' }, { status: 500 })
+    }
+
+    // ── Rodar análise IA ───────────────────────────────────────────────────
+    let laudoResult
+    try {
+      laudoResult = await analyzeArtifact(analysisContext)
+    } catch (aiError) {
+      await supabase.from('artifacts').update({ status: 'error' }).eq('id', artifact.id)
+      return NextResponse.json({ error: String(aiError) }, { status: 500 })
+    }
+
+    const tempo_analise_ms = Date.now() - start
+
+    // ── Persistir laudo ────────────────────────────────────────────────────
+    const { data: laudo, error: laudoError } = await supabase
+      .from('laudos')
+      .insert({
+        artifact_id: artifact.id,
+        resultado: laudoResult.resultado,
+        score: laudoResult.score,
+        resumo: laudoResult.resumo,
+        checks: laudoResult.checks as unknown as import('@/types/database').Json,
+        model_used: laudoResult.model_used,
+        tempo_analise_ms,
+      })
+      .select()
+      .single()
+
+    if (laudoError || !laudo) {
+      console.error('[analyze] laudo insert error:', laudoError)
+      return NextResponse.json({ error: 'Erro ao salvar laudo' }, { status: 500 })
+    }
+
+    await supabase.from('artifacts').update({ status: 'done' }).eq('id', artifact.id)
+
+    return NextResponse.json({ laudo_id: laudo.id, artifact_id: artifact.id, resultado: laudoResult.resultado, score: laudoResult.score })
+  } catch (err) {
+    console.error('[analyze] unhandled error:', err)
+    return NextResponse.json({ error: 'Erro interno. Tente novamente.' }, { status: 500 })
+  }
+}
