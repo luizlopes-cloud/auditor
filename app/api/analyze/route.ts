@@ -181,6 +181,10 @@ export async function POST(req: NextRequest) {
         const laudos = existing.laudos as { id: string }[] | { id: string } | null
         existingLaudoId = Array.isArray(laudos) ? laudos[0]?.id : (laudos as any)?.id
         if (!force) {
+          // Salva lovable_project_id se extraído agora mas ausente no artifact
+          if (lovableProjectId && !(existing as any).lovable_project_id) {
+            await supabase.from('artifacts').update({ lovable_project_id: lovableProjectId } as any).eq('id', existing.id)
+          }
           return NextResponse.json({
             error: 'Este artefato já foi analisado anteriormente.',
             existing_laudo_id: existingLaudoId ?? null,
