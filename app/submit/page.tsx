@@ -189,6 +189,7 @@ export default function SubmitPage() {
     setError(null)
     setResult(null)
     setDuplicate(null)
+    setEditorBlock(null)
     setLoading(true)
     setLoadingStep(0)
 

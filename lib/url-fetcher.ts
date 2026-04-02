@@ -9,16 +9,9 @@ export function detectEditorUrl(url: string): string | null {
   const path = parsed.pathname.toLowerCase()
 
 
-  // Lovable editor: aceita lovable.dev/projects/{id}, bloqueia só magic_link e URLs sem projeto
+  // Lovable editor: aceita qualquer lovable.dev URL (tratado no analyze como 422 se sem GitHub)
   if (host === 'lovable.dev' || host === 'www.lovable.dev') {
-    if (parsed.searchParams.has('magic_link')) {
-      return 'Este é um link de convite do Lovable, não da aplicação publicada. Para analisar, abra o projeto, clique em "Share" e cole o link da app (ex: meu-projeto.lovable.app).'
-    }
-    // Aceita lovable.dev/projects/{uuid} — vamos extrair o project_id no analyze
-    if (path.match(/^\/projects\/[a-f0-9-]{36}/)) {
-      return null // Aceito!
-    }
-    return 'URL inválida. Cole o link do projeto (lovable.dev/projects/...) ou da app publicada (meu-projeto.lovable.app).'
+    return null
   }
 
   // V0 editor: v0.dev

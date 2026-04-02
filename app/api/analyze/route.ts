@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
         if (repoContent.packageJson) {
           analysisContext += `\n### Dependências\n\`\`\`\n${repoContent.packageJson.slice(0, 2000)}\n\`\`\``
         }
-      } else if (new URL(fetchUrl).hostname === 'lovable.dev' || new URL(fetchUrl).hostname === 'www.lovable.dev') {
+      } else if (cleanUrl.includes('lovable.dev/')) {
         // Lovable editor URL — registra artefato e pula análise se não tem GitHub
         artifactSourceUrl = cleanUrl
         artifactSource = 'url'
