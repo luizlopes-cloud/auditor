@@ -426,16 +426,28 @@ export default function LaudoDetailPage() {
           </div>
           <p className="text-xs text-amber-300/70">Conecte ao GitHub para homologação completa:</p>
           <div className="flex flex-wrap gap-2">
-            {artifact.source_url?.includes('lovable') && (
+            {(artifact as any).lovable_project_id ? (
+              <a
+                href={`https://lovable.dev/projects/${(artifact as any).lovable_project_id}/settings/integrations?connector=github&subtab=connectors`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-500 transition-colors inline-flex items-center gap-1.5"
+              >
+                <GitBranch className="h-3.5 w-3.5" />
+                Conectar GitHub no Lovable
+              </a>
+            ) : artifact.source_url?.includes('lovable') ? (
               <button onClick={() => runGithubAction('lovable_link')} disabled={githubLoading}
-                className="px-3 py-2 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-500 disabled:opacity-50 transition-colors">
+                className="px-3 py-2 bg-amber-700/60 text-amber-100 text-xs font-medium rounded-lg hover:bg-amber-600/60 disabled:opacity-50 transition-colors">
                 Como conectar no Lovable
               </button>
+            ) : null}
+            {!artifact.source_url?.includes('lovable') && (
+              <button onClick={() => runGithubAction('create')} disabled={githubLoading}
+                className="px-3 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+                {githubLoading ? 'Criando...' : 'Criar repositório'}
+              </button>
             )}
-            <button onClick={() => runGithubAction('create')} disabled={githubLoading}
-              className="px-3 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
-              {githubLoading ? 'Criando...' : 'Criar repositório'}
-            </button>
           </div>
           {githubResult && (
             <div className={`text-xs p-3 rounded-lg ${githubResult.error ? 'bg-red-950/40 text-red-300' : 'bg-emerald-950/40 text-emerald-300'}`}>
