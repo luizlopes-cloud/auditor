@@ -94,7 +94,28 @@ export async function POST(
       return NextResponse.json({ error: 'Erro ao parsear revisão de UI' }, { status: 500 })
     }
 
+    // Recalcula score do review_ui a partir dos checks
+    const uiItems = (review.categorias ?? []).flatMap((c: any) => c.itens ?? [])
+    const uiErros = uiItems.filter((i: any) => i.status === 'erro').length
+    const uiAvisos = uiItems.filter((i: any) => i.status === 'aviso').length
+    review.score_ui = Math.max(0, Math.min(100, 100 - (uiErros * 10) - (uiAvisos * 3)))
+
     await supabase.from('laudos').update({ review_ui: review } as any).eq('id', id)
+
+    // Recalcula score final se ambas revisões existem
+    const { data: updated } = await supabase.from('laudos').select('*, artifacts(*)').eq('id', id).maybeSingle()
+    if (updated && (updated as any).review_ui && (updated as any).review_code) {
+      const checks = ((updated as any).checks ?? []) as any[]
+      const uiItems = ((updated as any).review_ui?.categorias ?? []).flatMap((c: any) => c.itens ?? [])
+      const codeItems = ((updated as any).review_code?.categorias ?? []).flatMap((c: any) => c.itens ?? [])
+      const allItems = [...checks, ...uiItems, ...codeItems]
+      const erros = allItems.filter((i: any) => i.status === 'erro').length
+      const avisos = allItems.filter((i: any) => i.status === 'aviso').length
+      const score = Math.max(0, Math.min(100, 100 - (erros * 10) - (avisos * 3)))
+      const resultado = score >= 75 ? 'aprovado' : score >= 40 ? 'ajustes_necessarios' : 'reprovado'
+      await supabase.from('laudos').update({ score, resultado } as any).eq('id', id)
+    }
+
     return NextResponse.json({ review })
   } catch (err) {
     console.error('[review-ui] error:', err)

@@ -101,7 +101,28 @@ export async function POST(
       return NextResponse.json({ error: 'Erro ao parsear revisão de código' }, { status: 500 })
     }
 
+    // Recalcula score do review_code a partir dos checks
+    const codeItems = (review.categorias ?? []).flatMap((c: any) => c.itens ?? [])
+    const codeErros = codeItems.filter((i: any) => i.status === 'erro').length
+    const codeAvisos = codeItems.filter((i: any) => i.status === 'aviso').length
+    review.score_code = Math.max(0, Math.min(100, 100 - (codeErros * 10) - (codeAvisos * 3)))
+
     await supabase.from('laudos').update({ review_code: review } as any).eq('id', id)
+
+    // Recalcula score final se ambas revisões existem
+    const { data: updated } = await supabase.from('laudos').select('*').eq('id', id).maybeSingle()
+    if (updated && (updated as any).review_ui && (updated as any).review_code) {
+      const checks = ((updated as any).checks ?? []) as any[]
+      const uiItems = ((updated as any).review_ui?.categorias ?? []).flatMap((c: any) => c.itens ?? [])
+      const allCodeItems = ((updated as any).review_code?.categorias ?? []).flatMap((c: any) => c.itens ?? [])
+      const allItems = [...checks, ...uiItems, ...allCodeItems]
+      const erros = allItems.filter((i: any) => i.status === 'erro').length
+      const avisos = allItems.filter((i: any) => i.status === 'aviso').length
+      const score = Math.max(0, Math.min(100, 100 - (erros * 10) - (avisos * 3)))
+      const resultado = score >= 75 ? 'aprovado' : score >= 40 ? 'ajustes_necessarios' : 'reprovado'
+      await supabase.from('laudos').update({ score, resultado } as any).eq('id', id)
+    }
+
     return NextResponse.json({ review })
   } catch (err) {
     console.error('[review-code] error:', err)

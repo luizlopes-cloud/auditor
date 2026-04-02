@@ -529,12 +529,28 @@ export default function LaudoDetailPage() {
       <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <ScoreBadge
-              resultado={laudo.resultado as 'aprovado' | 'ajustes_necessarios' | 'reprovado'}
-              score={laudo.score ?? 0}
-              showBar
-              size="lg"
-            />
+            {reviewUi && reviewCode ? (
+              <ScoreBadge
+                resultado={laudo.resultado as 'aprovado' | 'ajustes_necessarios' | 'reprovado'}
+                score={laudo.score ?? 0}
+                showBar
+                size="lg"
+              />
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center">
+                    <span className="text-lg font-bold text-muted-foreground">?</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Score pendente</p>
+                    <p className="text-xs text-muted-foreground">
+                      Execute {!reviewUi && !reviewCode ? 'Revisão de UI e Código' : !reviewUi ? 'Revisão de UI' : 'Revisão de Código'} para calcular o score final
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
             <p className="mt-4 text-foreground/80">{laudo.resumo}</p>
           </div>
           <button
