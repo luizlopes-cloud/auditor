@@ -5,6 +5,7 @@ import { createOpenAI } from '@ai-sdk/openai'
 import { fetchRepoContent } from '@/lib/github'
 import { fetchUrlContent } from '@/lib/url-fetcher'
 import { buildAnalysisContext } from '@/lib/parser'
+import { extractProjectRef, fetchSupabaseSchema, formatSchemaForLLM } from '@/lib/supabase-schema'
 
 const openrouter = createOpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
@@ -76,7 +77,18 @@ export async function POST(
       } catch {}
     }
 
-    const context = buildAnalysisContext(artifact.name, content, artifact.description ?? '')
+    let context = buildAnalysisContext(artifact.name, content, artifact.description ?? '')
+
+    // Tenta buscar schema do Supabase a partir do conteúdo
+    const projectRef = extractProjectRef(content)
+    if (projectRef) {
+      try {
+        const schema = await fetchSupabaseSchema(projectRef)
+        if (schema.length > 0) {
+          context += formatSchemaForLLM(schema)
+        }
+      } catch {}
+    }
 
     const result = await generateText({
       model: openrouter('google/gemini-2.0-flash-001'),
