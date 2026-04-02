@@ -7,6 +7,7 @@ import { ScoreBadge } from '@/components/ScoreBadge'
 import { cn } from '@/lib/utils'
 import { Link2, Code2, Upload, ArrowRight, GitBranch, AlertTriangle } from 'lucide-react'
 import Image from 'next/image'
+import { FloatingAssistant } from '@/components/FloatingAssistant'
 
 function normalizeUrl(u: string): string {
   const t = u.trim()
@@ -498,6 +499,7 @@ export default function AuditarPage() {
           </button>
         </form>
       )}
+      <FloatingAssistant initialMessage="Olá! Posso te ajudar a submeter seu artefato corretamente ou tirar dúvidas sobre o processo de auditoria." />
     </div>
   )
 }
