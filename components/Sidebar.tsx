@@ -8,7 +8,7 @@ import Image from 'next/image'
 
 const links = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/auditar', label: 'Auditar', icon: Search },
+  { href: '/submit', label: 'Auditar', icon: Search },
   { href: '/laudos', label: 'Laudos', icon: ClipboardList },
   { href: '/catalog', label: 'Catálogo', icon: BookOpen },
 ]
