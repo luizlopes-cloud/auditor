@@ -10,8 +10,11 @@ export function detectEditorUrl(url: string): string | null {
 
   // Lovable editor: lovable.dev/projects/... ou lovable.dev sem subdomínio
   if (host === 'lovable.dev' || host === 'www.lovable.dev') {
+    if (parsed.searchParams.has('magic_link')) {
+      return 'Este é um link de convite do Lovable, não da aplicação publicada. Para analisar, abra o projeto, clique em "Share" e cole o link da app (ex: meu-projeto.lovable.app).'
+    }
     if (path.startsWith('/projects')) {
-      return 'Este é o link do editor Lovable, não da aplicação publicada. Abra o projeto no Lovable, clique em "Share" e cole o link da app (ex: meu-projeto.lovable.app).'
+      return 'Este é o link do editor Lovable, não da aplicação publicada. Clique em "Share" dentro do projeto e cole o link da app (ex: meu-projeto.lovable.app).'
     }
     return 'URL inválida para análise. Cole o link da aplicação publicada (ex: meu-projeto.lovable.app), não do editor.'
   }
