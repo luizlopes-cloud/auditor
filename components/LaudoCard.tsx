@@ -54,7 +54,7 @@ export function LaudoCard({ id, artifactId, name, type, resultado, score, resumo
     })
     setSaving(false)
     setEditing(false)
-    router.refresh()
+    window.location.reload()
   }
 
   const handleDelete = async (e: React.MouseEvent) => {
@@ -62,7 +62,7 @@ export function LaudoCard({ id, artifactId, name, type, resultado, score, resumo
     e.stopPropagation()
     setDeleting(true)
     await fetch(`/api/laudos/${id}`, { method: 'DELETE' })
-    router.refresh()
+    window.location.reload()
   }
 
   return (
