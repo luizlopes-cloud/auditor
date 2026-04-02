@@ -586,99 +586,45 @@ export default function LaudoDetailPage() {
         )}
       </div>
 
-      {/* ── Ferramentas de homologação ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-        {/* Revisar UI */}
-        <button
-          onClick={() => {
-            if (reviewUi) { setUiOpen(v => !v); return }
-            setLoadingUi(true)
-            fetch(`/api/laudos/${id}/review-ui`, { method: 'POST' })
-              .then(r => r.json())
-              .then(d => { setReviewUi(d.review ?? d.error ?? 'Erro'); setUiOpen(true) })
-              .catch(() => setReviewUi('Erro ao revisar UI'))
-              .finally(() => setLoadingUi(false))
-          }}
-          disabled={loadingUi}
-          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left disabled:opacity-60"
-        >
-          <div className="h-9 w-9 rounded-lg bg-violet-900/40 flex items-center justify-center shrink-0">
-            <Monitor className="h-4 w-4 text-violet-400" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">Revisar UI</p>
-            <p className="text-xs text-muted-foreground">{loadingUi ? 'Analisando...' : reviewUi ? 'Ver resultado' : 'Interface e UX'}</p>
-          </div>
-        </button>
+      {/* ── Resultados das ferramentas (aparecem ACIMA dos botões) ── */}
 
-        {/* Revisar Código */}
-        <button
-          onClick={() => {
-            if (reviewCode) { setCodeOpen(v => !v); return }
-            setLoadingCode(true)
-            fetch(`/api/laudos/${id}/review-code`, { method: 'POST' })
-              .then(r => r.json())
-              .then(d => { setReviewCode(d.review ?? d.error ?? 'Erro'); setCodeOpen(true) })
-              .catch(() => setReviewCode('Erro ao revisar código'))
-              .finally(() => setLoadingCode(false))
-          }}
-          disabled={loadingCode}
-          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left disabled:opacity-60"
-        >
-          <div className="h-9 w-9 rounded-lg bg-cyan-900/40 flex items-center justify-center shrink-0">
-            <Code2 className="h-4 w-4 text-cyan-400" />
+      {/* Painel: Checklist de Acessos */}
+      {acessosOpen && (
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><ClipboardCheck className="h-4 w-4 text-amber-400" /> Checklist de Acessos</h2>
+            <button onClick={() => setAcessosOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
           </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">Revisar Código</p>
-            <p className="text-xs text-muted-foreground">{loadingCode ? 'Analisando...' : reviewCode ? 'Ver resultado' : 'Qualidade e segurança'}</p>
-          </div>
-        </button>
-
-        {/* Gerar Spec */}
-        <button
-          onClick={() => {
-            if (spec) { setSpecOpen(v => !v); return }
-            setLoadingSpec(true)
-            fetch(`/api/laudos/${id}/spec`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ funcionalidades: funcionalidades ?? [], reviewUi: reviewUi, reviewCode: reviewCode, similares: similares ?? [] }),
-            })
-              .then(r => r.json())
-              .then(d => { setSpec(d.spec ?? d.error ?? 'Erro'); setSpecOpen(true) })
-              .catch(() => setSpec('Erro ao gerar spec'))
-              .finally(() => setLoadingSpec(false))
-          }}
-          disabled={loadingSpec}
-          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left disabled:opacity-60"
-        >
-          <div className="h-9 w-9 rounded-lg bg-emerald-900/40 flex items-center justify-center shrink-0">
-            <FileText className="h-4 w-4 text-emerald-400" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">Gerar Spec</p>
-            <p className="text-xs text-muted-foreground">{loadingSpec ? 'Gerando...' : spec ? 'Ver resultado' : 'Documentação básica'}</p>
-          </div>
-        </button>
-
-        {/* Checklist de Acessos */}
-        <button
-          onClick={() => setAcessosOpen(v => !v)}
-          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left"
-        >
-          <div className="h-9 w-9 rounded-lg bg-amber-900/40 flex items-center justify-center shrink-0">
-            <ClipboardCheck className="h-4 w-4 text-amber-400" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">Checklist de Acessos</p>
-            <p className="text-xs text-muted-foreground">{Object.values(acessos).filter(Boolean).length}/{Object.keys(acessos).length} verificados</p>
-          </div>
-        </button>
-      </div>
+          {[
+            { key: 'github', label: 'GitHub', auto: !!artifact?.github_url, detail: artifact?.github_url ?? 'Não vinculado' },
+            { key: 'supabase', label: 'Supabase', auto: !!(artifact?.content ?? '').match(/supabase/i), detail: (artifact?.content ?? '').match(/supabase/i) ? 'Detectado no código' : 'Não detectado' },
+            { key: 'vercel', label: 'Vercel', auto: !!(artifact?.source_url ?? '').includes('vercel.app'), detail: (artifact?.source_url ?? '').includes('vercel.app') ? artifact?.source_url : 'Não detectado' },
+            { key: 'dominio', label: 'Domínio personalizado', auto: !!(artifact?.source_url && !artifact.source_url.includes('.vercel.app') && !artifact.source_url.includes('.lovable.app')), detail: artifact?.source_url && !artifact.source_url.includes('.vercel.app') && !artifact.source_url.includes('.lovable.app') ? artifact.source_url : 'Usando domínio padrão' },
+            { key: 'staging', label: 'Staging', auto: false, detail: 'Verificação manual' },
+          ].map(({ key, label, auto, detail }) => (
+            <button
+              key={key}
+              onClick={() => setAcessos(prev => ({ ...prev, [key]: !prev[key] }))}
+              className="w-full flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:bg-accent/30 transition-colors text-left"
+            >
+              {(acessos[key] || auto) ? (
+                <SquareCheck className="h-4 w-4 text-emerald-400 shrink-0" />
+              ) : (
+                <Square className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <span className={`text-sm ${(acessos[key] || auto) ? 'text-foreground' : 'text-muted-foreground'}`}>{label}</span>
+                <p className="text-xs text-muted-foreground/60 truncate">{detail}</p>
+              </div>
+              {auto && <span className="text-[10px] text-emerald-400 font-medium shrink-0">Auto</span>}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Painel: Review UI */}
       {uiOpen && reviewUi && typeof reviewUi === 'object' && (
-        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6 space-y-4">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Monitor className="h-4 w-4 text-violet-400" /> Revisão de UI — Score {reviewUi.score_ui}/100</h2>
             <button onClick={() => setUiOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
@@ -701,7 +647,7 @@ export default function LaudoDetailPage() {
 
       {/* Painel: Review Code */}
       {codeOpen && reviewCode && typeof reviewCode === 'object' && (
-        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6 space-y-4">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Code2 className="h-4 w-4 text-cyan-400" /> Revisão de Código — Score {reviewCode.score_code}/100</h2>
             <button onClick={() => setCodeOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
@@ -727,7 +673,7 @@ export default function LaudoDetailPage() {
 
       {/* Painel: Spec */}
       {specOpen && spec && typeof spec === 'object' && (
-        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6 space-y-4">
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><FileText className="h-4 w-4 text-emerald-400" /> Spec — {spec.nome}</h2>
             <button onClick={() => setSpecOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
@@ -739,10 +685,9 @@ export default function LaudoDetailPage() {
             <div className="space-y-1">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Funcionalidades</h3>
               {spec.funcionalidades.map((f: any, i: number) => (
-                <div key={i} className="flex items-center gap-2 text-xs">
-                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${f.prioridade === 'essencial' ? 'bg-red-900/40 text-red-300' : f.prioridade === 'importante' ? 'bg-amber-900/40 text-amber-300' : 'bg-blue-900/40 text-blue-300'}`}>{f.prioridade}</span>
-                  <span className="font-medium text-foreground">{f.nome}</span>
-                  <span className="text-muted-foreground">{f.descricao}</span>
+                <div key={i} className="flex items-start gap-2 text-xs">
+                  <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${f.prioridade === 'essencial' ? 'bg-red-900/40 text-red-300' : f.prioridade === 'importante' ? 'bg-amber-900/40 text-amber-300' : 'bg-blue-900/40 text-blue-300'}`}>{f.prioridade}</span>
+                  <div><span className="font-medium text-foreground">{f.nome}</span> <span className="text-muted-foreground">— {f.descricao}</span></div>
                 </div>
               ))}
             </div>
@@ -763,35 +708,79 @@ export default function LaudoDetailPage() {
         </div>
       )}
 
-      {/* Painel: Checklist de Acessos */}
-      {acessosOpen && (
-        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><ClipboardCheck className="h-4 w-4 text-amber-400" /> Checklist de Acessos</h2>
-            <button onClick={() => setAcessosOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+      {/* ── Botões das ferramentas ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+        <button
+          onClick={() => {
+            if (reviewUi) { setUiOpen(v => !v); return }
+            setLoadingUi(true)
+            fetch(`/api/laudos/${id}/review-ui`, { method: 'POST' })
+              .then(r => r.json())
+              .then(d => { setReviewUi(d.review ?? d.error ?? 'Erro'); setUiOpen(true) })
+              .catch(() => setReviewUi('Erro ao revisar UI'))
+              .finally(() => setLoadingUi(false))
+          }}
+          disabled={loadingUi}
+          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left disabled:opacity-60"
+        >
+          <div className="h-9 w-9 rounded-lg bg-violet-900/40 flex items-center justify-center shrink-0"><Monitor className="h-4 w-4 text-violet-400" /></div>
+          <div>
+            <p className="text-sm font-medium text-foreground">Revisar UI</p>
+            <p className="text-xs text-muted-foreground">{loadingUi ? 'Analisando...' : reviewUi ? (uiOpen ? 'Fechar' : 'Ver resultado') : 'Interface e UX'}</p>
           </div>
-          {[
-            { key: 'github', label: 'GitHub — repositório acessível' },
-            { key: 'supabase', label: 'Supabase — acesso ao projeto/banco' },
-            { key: 'vercel', label: 'Vercel — acesso ao deploy' },
-            { key: 'dominio', label: 'Domínio — DNS configurado (seazone.dev)' },
-            { key: 'staging', label: 'Staging — ambiente de testes disponível' },
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setAcessos(prev => ({ ...prev, [key]: !prev[key] }))}
-              className="w-full flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:bg-accent/30 transition-colors text-left"
-            >
-              {acessos[key] ? (
-                <SquareCheck className="h-4 w-4 text-emerald-400 shrink-0" />
-              ) : (
-                <Square className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-              )}
-              <span className={`text-sm ${acessos[key] ? 'text-foreground' : 'text-muted-foreground'}`}>{label}</span>
-            </button>
-          ))}
-        </div>
-      )}
+        </button>
+
+        <button
+          onClick={() => {
+            if (reviewCode) { setCodeOpen(v => !v); return }
+            setLoadingCode(true)
+            fetch(`/api/laudos/${id}/review-code`, { method: 'POST' })
+              .then(r => r.json())
+              .then(d => { setReviewCode(d.review ?? d.error ?? 'Erro'); setCodeOpen(true) })
+              .catch(() => setReviewCode('Erro ao revisar código'))
+              .finally(() => setLoadingCode(false))
+          }}
+          disabled={loadingCode}
+          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left disabled:opacity-60"
+        >
+          <div className="h-9 w-9 rounded-lg bg-cyan-900/40 flex items-center justify-center shrink-0"><Code2 className="h-4 w-4 text-cyan-400" /></div>
+          <div>
+            <p className="text-sm font-medium text-foreground">Revisar Código</p>
+            <p className="text-xs text-muted-foreground">{loadingCode ? 'Analisando...' : reviewCode ? (codeOpen ? 'Fechar' : 'Ver resultado') : 'Qualidade e segurança'}</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => {
+            if (spec) { setSpecOpen(v => !v); return }
+            setLoadingSpec(true)
+            fetch(`/api/laudos/${id}/spec`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ funcionalidades: funcionalidades ?? [], reviewUi, reviewCode, similares: similares ?? [] }) })
+              .then(r => r.json())
+              .then(d => { setSpec(d.spec ?? d.error ?? 'Erro'); setSpecOpen(true) })
+              .catch(() => setSpec('Erro ao gerar spec'))
+              .finally(() => setLoadingSpec(false))
+          }}
+          disabled={loadingSpec}
+          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left disabled:opacity-60"
+        >
+          <div className="h-9 w-9 rounded-lg bg-emerald-900/40 flex items-center justify-center shrink-0"><FileText className="h-4 w-4 text-emerald-400" /></div>
+          <div>
+            <p className="text-sm font-medium text-foreground">Gerar Spec</p>
+            <p className="text-xs text-muted-foreground">{loadingSpec ? 'Gerando...' : spec ? (specOpen ? 'Fechar' : 'Ver resultado') : 'Documentação completa'}</p>
+          </div>
+        </button>
+
+        <button
+          onClick={() => setAcessosOpen(v => !v)}
+          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left"
+        >
+          <div className="h-9 w-9 rounded-lg bg-amber-900/40 flex items-center justify-center shrink-0"><ClipboardCheck className="h-4 w-4 text-amber-400" /></div>
+          <div>
+            <p className="text-sm font-medium text-foreground">Checklist de Acessos</p>
+            <p className="text-xs text-muted-foreground">{acessosOpen ? 'Fechar' : 'Verificar acessos'}</p>
+          </div>
+        </button>
+      </div>
 
       {/* Checks por categoria */}
       <div className="space-y-6 mb-8">
