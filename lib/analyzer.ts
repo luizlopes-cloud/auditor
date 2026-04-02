@@ -82,14 +82,14 @@ Score 35 — reprovado:
 { resultado: "reprovado", score: 35, resumo: "Script com token de API exposto no código-fonte. Qualquer pessoa com acesso ao repo pode usar o token para acessar dados da empresa.", checks: [{ categoria: "Segurança", item: "Token exposto", status: "erro", detalhe: "Token Pipedrive 'api_token=abc123xyz' hardcoded na linha 4", sugestao: "Mover para variável de ambiente PIPEDRIVE_TOKEN e revogar o token atual imediatamente" }] }`
 
 async function runAnalysis(context: string, model: string): Promise<LaudoResult> {
-  const { output } = await generateText({
+  const result = await generateText({
     model: openrouter(model),
-    output: Output.object({ schema: LaudoSchema }),
-    system: SYSTEM_PROMPT,
-    prompt: `Analise o seguinte artefato e gere o laudo completo:\n\n${context}`,
+    experimental_output: Output.object({ schema: LaudoSchema }),
+    prompt: `${SYSTEM_PROMPT}\n\nAnalise o seguinte artefato e gere o laudo completo:\n\n${context}`,
     temperature: 0,
   })
-  return output
+  if (!result.experimental_output) throw new Error(`Modelo ${model} não retornou output estruturado`)
+  return result.experimental_output
 }
 
 export async function analyzeArtifact(context: string): Promise<LaudoResult & { model_used: string }> {
