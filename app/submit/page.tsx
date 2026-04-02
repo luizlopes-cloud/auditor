@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { AnalysisLoading } from '@/components/AnalysisLoading'
 import { ScoreBadge } from '@/components/ScoreBadge'
-import { ArrowRight, Link2, Code2, CheckCircle2, Upload } from 'lucide-react'
+import { ArrowRight, Link2, Code2, CheckCircle2, Upload, GitBranch } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FloatingAssistant } from '@/components/FloatingAssistant'
 
@@ -31,7 +31,7 @@ export default function SubmitPage() {
   const [loading, setLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<{ laudo_id: string; resultado: string; score: number } | null>(null)
+  const [result, setResult] = useState<{ laudo_id: string; resultado: string; score: number; sem_github?: boolean } | null>(null)
 
   const detectHint = (u: string) => {
     if (!u) return null
@@ -129,6 +129,27 @@ export default function SubmitPage() {
                   size="lg"
                 />
               </div>
+              {result.sem_github && (
+                <div className="bg-amber-950/30 border border-amber-700/40 rounded-2xl p-5 text-left space-y-3">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="h-4 w-4 text-amber-400" />
+                    <p className="text-sm font-semibold text-amber-300">Este projeto não está no GitHub</p>
+                  </div>
+                  <p className="text-xs text-amber-300/80">Para uma homologação completa, o código-fonte precisa estar acessível. Publique no GitHub seguindo os passos:</p>
+                  <ol className="text-xs text-amber-300/70 space-y-1.5 pl-1">
+                    <li><span className="text-amber-300 font-medium">1.</span> No Lovable, vá em <span className="font-mono bg-amber-900/40 px-1 rounded">Settings</span> → conecte sua conta GitHub</li>
+                    <li><span className="text-amber-300 font-medium">2.</span> Clique em <span className="font-mono bg-amber-900/40 px-1 rounded">Publish to GitHub</span></li>
+                    <li><span className="text-amber-300 font-medium">3.</span> Volte aqui e re-submeta com o link do repositório</li>
+                  </ol>
+                  <button
+                    onClick={() => { setResult(null) }}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-600 text-white text-sm font-medium rounded-xl hover:bg-amber-500 transition-colors"
+                  >
+                    <GitBranch className="h-4 w-4" />
+                    Re-submeter com GitHub
+                  </button>
+                </div>
+              )}
               <div className="flex flex-col gap-3">
                 <button
                   onClick={() => router.push(`/laudos/${result.laudo_id}`)}
