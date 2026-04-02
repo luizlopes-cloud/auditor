@@ -1,11 +1,10 @@
+import { unstable_noStore as noStore } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { StatCard } from '@/components/StatCard'
 import { LaudoCard } from '@/components/LaudoCard'
 import { ShieldCheck, Trophy, BarChart3, TrendingUp } from 'lucide-react'
 
-export const dynamic = 'force-dynamic'
 
-export const dynamic = 'force-dynamic'
 
 function getWeekStart(date: Date): string {
   const d = new Date(date)
@@ -22,6 +21,7 @@ const tipoLabel: Record<string, string> = {
 }
 
 async function getDashboardData() {
+  noStore()
   const supabase = await createClient()
 
   const [{ data: recentLaudos }, { data: allLaudos }] = await Promise.all([

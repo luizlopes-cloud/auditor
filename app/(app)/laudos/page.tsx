@@ -1,10 +1,9 @@
+import { unstable_noStore as noStore } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { LaudoCard } from '@/components/LaudoCard'
 import Link from 'next/link'
 
-export const dynamic = 'force-dynamic'
 
-export const dynamic = 'force-dynamic'
 
 const RESULTADO_OPTIONS = [
   { value: '', label: 'Todos' },
@@ -28,6 +27,7 @@ interface PageProps {
 }
 
 export default async function LaudosPage({ searchParams }: PageProps) {
+  noStore()
   const { resultado, tipo } = await searchParams
 
   const supabase = await createClient()
