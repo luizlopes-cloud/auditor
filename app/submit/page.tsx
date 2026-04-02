@@ -31,7 +31,7 @@ export default function SubmitPage() {
   const [loading, setLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<{ laudo_id: string; resultado: string; score: number; sem_github?: boolean } | null>(null)
+  const [result, setResult] = useState<{ laudo_id: string; resultado: string; score: number; sem_github?: boolean; org_externa?: boolean } | null>(null)
 
   const detectHint = (u: string) => {
     if (!u) return null
@@ -129,13 +129,27 @@ export default function SubmitPage() {
                   size="lg"
                 />
               </div>
+              {result.org_externa && (
+                <div className="bg-amber-950/30 border border-amber-700/40 rounded-2xl p-5 text-left space-y-3">
+                  <div className="flex items-center gap-2">
+                    <GitBranch className="h-4 w-4 text-amber-400" />
+                    <p className="text-sm font-semibold text-amber-300">Repositório fora da organização Seazone</p>
+                  </div>
+                  <p className="text-xs text-amber-300/80">Este projeto está em um repositório pessoal ou em outra organização. Para a homologação ser válida, transfira para a org oficial:</p>
+                  <ol className="text-xs text-amber-300/70 space-y-1.5 pl-1">
+                    <li><span className="text-amber-300 font-medium">1.</span> No GitHub, vá em <span className="font-mono bg-amber-900/40 px-1 rounded">Settings → Transfer repository</span></li>
+                    <li><span className="text-amber-300 font-medium">2.</span> Selecione a organização <span className="font-mono bg-amber-900/40 px-1 rounded">seazone-socios</span> ou <span className="font-mono bg-amber-900/40 px-1 rounded">businessoperations-seazone</span></li>
+                    <li><span className="text-amber-300 font-medium">3.</span> Confirme a transferência e re-submeta</li>
+                  </ol>
+                </div>
+              )}
               {result.sem_github && (
                 <div className="bg-amber-950/30 border border-amber-700/40 rounded-2xl p-5 text-left space-y-3">
                   <div className="flex items-center gap-2">
                     <GitBranch className="h-4 w-4 text-amber-400" />
                     <p className="text-sm font-semibold text-amber-300">Este projeto não está no GitHub</p>
                   </div>
-                  <p className="text-xs text-amber-300/80">Para uma homologação completa, o código-fonte precisa estar acessível. Publique no GitHub seguindo os passos:</p>
+                  <p className="text-xs text-amber-300/80">Para uma homologação completa, publique o código-fonte no GitHub:</p>
                   <ol className="text-xs text-amber-300/70 space-y-1.5 pl-1">
                     <li><span className="text-amber-300 font-medium">1.</span> No Lovable, vá em <span className="font-mono bg-amber-900/40 px-1 rounded">Settings</span> → conecte sua conta GitHub</li>
                     <li><span className="text-amber-300 font-medium">2.</span> Clique em <span className="font-mono bg-amber-900/40 px-1 rounded">Publish to GitHub</span></li>

@@ -17,6 +17,8 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient()
     const start = Date.now()
 
+    const ORGS_APROVADAS = ['seazone-socios', 'businessoperations-seazone', 'seazone']
+
     let analysisContext = ''
     let artifactName = name?.trim() || 'Sem nome'
     let artifactType: 'planilha' | 'script' | 'dashboard' | 'flow' | 'query' | 'outro' = 'outro'
@@ -25,6 +27,7 @@ export async function POST(req: NextRequest) {
     let artifactGithubUrl: string | null = null
     let artifactSourceUrl: string | null = null
     let semGithub = false
+    let orgExterna = false
 
     // ── MODE: URL ───────────────────────────────────────────────────────────
     if (mode === 'url') {
@@ -49,7 +52,11 @@ export async function POST(req: NextRequest) {
       const urlType = detectUrlType(cleanUrl)
 
       if (urlType === 'github-repo' || urlType === 'github-file') {
-        // GitHub direto
+        // Verifica se o repo está na org certa
+        const parsed = parseGitHubUrl(cleanUrl)
+        if (parsed && !ORGS_APROVADAS.includes(parsed.owner.toLowerCase())) {
+          orgExterna = true
+        }
         const repoContent = await fetchRepoContent(cleanUrl)
         artifactName = name?.trim() || parseGitHubUrl(cleanUrl)?.repo || 'Repositório GitHub'
         artifactType = 'script'
@@ -74,6 +81,8 @@ export async function POST(req: NextRequest) {
 
         const effectiveGithubUrl = github_url?.trim() || fetched.detectedGithubUrl
         if (effectiveGithubUrl) {
+          const parsedGh = parseGitHubUrl(effectiveGithubUrl)
+          if (parsedGh && !ORGS_APROVADAS.includes(parsedGh.owner.toLowerCase())) orgExterna = true
           try {
             const repoContent = await fetchRepoContent(effectiveGithubUrl)
             artifactGithubUrl = effectiveGithubUrl
@@ -245,7 +254,7 @@ export async function POST(req: NextRequest) {
 
     if (!existingArtifactId) await supabase.from('artifacts').update({ status: 'done' }).eq('id', artifact.id)
 
-    return NextResponse.json({ laudo_id: laudo.id, artifact_id: artifact.id, resultado: laudoResult.resultado, score: laudoResult.score, version, sem_github: semGithub })
+    return NextResponse.json({ laudo_id: laudo.id, artifact_id: artifact.id, resultado: laudoResult.resultado, score: laudoResult.score, version, sem_github: semGithub, org_externa: orgExterna })
   } catch (err) {
     console.error('[analyze] unhandled error:', err)
     return NextResponse.json({ error: 'Erro interno. Tente novamente.' }, { status: 500 })
