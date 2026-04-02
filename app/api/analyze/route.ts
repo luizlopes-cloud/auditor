@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     let semGithub = false
     let orgExterna = false
     let previewUrl: string | null = null
+    let lovableProjectId: string | null = null
 
     // ── MODE: URL ───────────────────────────────────────────────────────────
     if (mode === 'url') {
@@ -51,6 +52,15 @@ export async function POST(req: NextRequest) {
         } catch { return fetchUrl }
       })()
       const isPreview = fetchUrl.includes('__lovable_token') || new URL(fetchUrl).hostname.startsWith('preview--')
+
+      // Extrai project_id do Lovable JWT (se presente)
+      try {
+        const tokenParam = new URL(fetchUrl).searchParams.get('__lovable_token')
+        if (tokenParam) {
+          const payload = JSON.parse(Buffer.from(tokenParam.split('.')[1], 'base64').toString())
+          lovableProjectId = payload.project_id ?? null
+        }
+      } catch {}
 
       const urlType = detectUrlType(cleanUrl)
 
@@ -204,6 +214,7 @@ export async function POST(req: NextRequest) {
           status: 'analyzing',
         }
       if (previewUrl) insertData.preview_url = previewUrl
+      if (lovableProjectId) insertData.lovable_project_id = lovableProjectId
       const result = await supabase
         .from('artifacts')
         .insert(insertData as any)
@@ -295,7 +306,7 @@ export async function POST(req: NextRequest) {
     if (!existingArtifactId) await supabase.from('artifacts').update({ status: 'done' }).eq('id', artifact.id)
 
     const replaced = existingArtifactId && !contentChanged && !!existingLaudoId
-    return NextResponse.json({ laudo_id: laudo.id, artifact_id: artifact!.id, resultado: laudoResult.resultado, score: laudoResult.score, version, sem_github: semGithub, org_externa: orgExterna, replaced, content_changed: contentChanged })
+    return NextResponse.json({ laudo_id: laudo.id, artifact_id: artifact!.id, resultado: laudoResult.resultado, score: laudoResult.score, version, sem_github: semGithub, org_externa: orgExterna, replaced, content_changed: contentChanged, lovable_project_id: lovableProjectId })
   } catch (err) {
     console.error('[analyze] unhandled error:', err)
     return NextResponse.json({ error: 'Erro interno. Tente novamente.' }, { status: 500 })

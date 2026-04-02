@@ -18,22 +18,47 @@ function normalizeUrl(u: string): string {
 
 type Mode = 'url' | 'code' | 'file'
 
-function GithubActions({ artifactId, onResubmit, isLovable }: { artifactId?: string; onResubmit: () => void; isLovable?: boolean }) {
+function GithubActions({ artifactId, laudoId, isLovable, lovableProjectId, onLinked }: { artifactId?: string; laudoId?: string; isLovable?: boolean; lovableProjectId?: string; onLinked?: (url: string) => void }) {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  const [actionResult, setActionResult] = useState<any>(null)
+  const [githubInput, setGithubInput] = useState('')
+  const [showInput, setShowInput] = useState(false)
+  const [linking, setLinking] = useState(false)
 
   const run = async (action: string) => {
     if (!artifactId) return
     setLoading(true)
-    setResult(null)
+    setActionResult(null)
     try {
       const res = await fetch(`/api/artifacts/${artifactId}/github`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),
       })
-      setResult(await res.json())
-    } catch { setResult({ error: 'Erro de conexão' }) }
+      const data = await res.json()
+      setActionResult(data)
+      if (data.success && data.new_url) onLinked?.(data.new_url)
+    } catch { setActionResult({ error: 'Erro de conexão' }) }
     finally { setLoading(false) }
+  }
+
+  const linkGithub = async () => {
+    if (!githubInput.trim() || !artifactId) return
+    setLinking(true)
+    // Atualiza o artifact com a URL do GitHub
+    await fetch(`/api/artifacts/${artifactId}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ github_url: githubInput.trim() }),
+    })
+    // Re-analisa o laudo existente (não cria novo artefato)
+    if (laudoId) {
+      const res = await fetch(`/api/laudos/${laudoId}/reanalyze`, { method: 'POST' })
+      const data = await res.json()
+      setLinking(false)
+      if (data.laudo_id) router.push(`/laudos/${data.laudo_id}`)
+    } else {
+      setLinking(false)
+    }
   }
 
   return (
@@ -43,30 +68,65 @@ function GithubActions({ artifactId, onResubmit, isLovable }: { artifactId?: str
         <p className="text-sm font-semibold text-amber-300">Este projeto não está no GitHub</p>
       </div>
       <p className="text-xs text-amber-300/70">Conecte ao GitHub para homologação completa:</p>
-      <div className="flex flex-wrap gap-2">
-        {isLovable && (
-          <button onClick={() => run('lovable_link')} disabled={loading}
-            className="px-3 py-2 bg-amber-700/60 text-amber-100 text-xs font-medium rounded-lg hover:bg-amber-600/60 disabled:opacity-50 transition-colors">
-            Como conectar no Lovable
+
+      {showInput ? (
+        <div className="space-y-2">
+          <input
+            type="text"
+            value={githubInput}
+            onChange={e => setGithubInput(e.target.value)}
+            placeholder="https://github.com/org/repo"
+            className="w-full rounded-lg border border-amber-700/40 bg-amber-950/40 px-3 py-2 text-sm text-amber-100 placeholder:text-amber-300/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
+            onKeyDown={e => e.key === 'Enter' && linkGithub()}
+          />
+          <div className="flex gap-2">
+            <button onClick={linkGithub} disabled={linking || !githubInput.trim()}
+              className="px-3 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+              {linking ? 'Re-analisando...' : 'Vincular e re-analisar'}
+            </button>
+            <button onClick={() => setShowInput(false)}
+              className="px-3 py-2 text-amber-300/60 text-xs hover:text-amber-300 transition-colors">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {isLovable && lovableProjectId ? (
+            <a
+              href={`https://lovable.dev/projects/${lovableProjectId}/settings/integrations?connector=github&subtab=connectors`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-500 transition-colors inline-flex items-center gap-1.5"
+            >
+              <GitBranch className="h-3.5 w-3.5" />
+              Conectar GitHub no Lovable
+            </a>
+          ) : isLovable ? (
+            <button onClick={() => run('lovable_link')} disabled={loading}
+              className="px-3 py-2 bg-amber-700/60 text-amber-100 text-xs font-medium rounded-lg hover:bg-amber-600/60 disabled:opacity-50 transition-colors">
+              Como conectar no Lovable
+            </button>
+          ) : null}
+          {!isLovable && (
+            <button onClick={() => run('create')} disabled={loading}
+              className="px-3 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+              {loading ? 'Criando...' : 'Criar repositório'}
+            </button>
+          )}
+          <button onClick={() => setShowInput(true)}
+            className="px-3 py-2 border border-amber-700/40 text-amber-300 text-xs font-medium rounded-lg hover:bg-amber-950/40 transition-colors">
+            Já tenho o GitHub
           </button>
-        )}
-        {!isLovable && (
-          <button onClick={() => run('create')} disabled={loading}
-            className="px-3 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
-            {loading ? 'Criando...' : 'Criar repositório'}
-          </button>
-        )}
-        <button onClick={onResubmit}
-          className="px-3 py-2 border border-amber-700/40 text-amber-300 text-xs font-medium rounded-lg hover:bg-amber-950/40 transition-colors">
-          Re-submeter com GitHub
-        </button>
-      </div>
-      {result && (
-        <div className={`text-xs p-3 rounded-lg ${result.error ? 'bg-red-950/40 text-red-300' : 'bg-emerald-950/40 text-emerald-300'}`}>
-          {result.error ?? result.message}
-          {result.new_url && <a href={result.new_url} target="_blank" rel="noopener noreferrer" className="block mt-1 text-primary underline">{result.new_url}</a>}
-          {result.steps && (
-            <ol className="mt-2 space-y-1 list-decimal list-inside">{result.steps.map((s: string, i: number) => <li key={i}>{s}</li>)}</ol>
+        </div>
+      )}
+
+      {actionResult && (
+        <div className={`text-xs p-3 rounded-lg ${actionResult.error ? 'bg-red-950/40 text-red-300' : 'bg-emerald-950/40 text-emerald-300'}`}>
+          {actionResult.error ?? actionResult.message}
+          {actionResult.new_url && <a href={actionResult.new_url} target="_blank" rel="noopener noreferrer" className="block mt-1 text-primary underline">{actionResult.new_url}</a>}
+          {actionResult.steps && (
+            <ol className="mt-2 space-y-1 list-decimal list-inside">{actionResult.steps.map((s: string, i: number) => <li key={i}>{s}</li>)}</ol>
           )}
         </div>
       )}
@@ -221,7 +281,7 @@ export default function SubmitPage() {
                 </div>
               )}
               {result.sem_github && (
-                <GithubActions artifactId={result.artifact_id} onResubmit={() => setResult(null)} isLovable={url.includes('lovable')} />
+                <GithubActions artifactId={result.artifact_id} laudoId={result.laudo_id} isLovable={url.includes('lovable')} lovableProjectId={(result as any).lovable_project_id} />
               )}
               <div className="flex flex-col gap-3">
                 <button

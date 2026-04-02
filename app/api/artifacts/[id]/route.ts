@@ -8,7 +8,7 @@ export async function PATCH(
   try {
     const { id } = await params
     const body = await req.json()
-    const { name, equipe } = body
+    const { name, equipe, github_url } = body
 
     if (name !== undefined && !name?.trim()) {
       return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
@@ -19,6 +19,7 @@ export async function PATCH(
     const update: Record<string, string | null> = {}
     if (name !== undefined) update.name = name.trim()
     if (equipe !== undefined) update.equipe = equipe?.trim() || null
+    if (github_url !== undefined) update.github_url = github_url?.trim() || null
 
     const { error } = await supabase
       .from('artifacts')
