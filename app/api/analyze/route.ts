@@ -170,9 +170,9 @@ export async function POST(req: NextRequest) {
       if (artifactSourceUrl) orConditions.push(`source_url.eq.${artifactSourceUrl}`)
       if (artifactGithubUrl) orConditions.push(`github_url.eq.${artifactGithubUrl}`)
 
-      const { data: existing } = await supabase
+      const { data: existing } = await (supabase
         .from('artifacts')
-        .select('id, content, laudos(id)')
+        .select('id, content, github_url, laudos(id)') as any)
         .or(orConditions.join(','))
         .limit(1)
         .maybeSingle()
@@ -185,6 +185,8 @@ export async function POST(req: NextRequest) {
             error: 'Este artefato já foi analisado anteriormente.',
             existing_laudo_id: existingLaudoId ?? null,
             existing_artifact_id: existing.id,
+            has_github: !!(existing as any).github_url,
+            lovable_project_id: (existing as any).lovable_project_id ?? lovableProjectId,
           }, { status: 409 })
         }
         existingArtifactId = existing.id

@@ -148,7 +148,7 @@ export default function SubmitPage() {
   const [loadingStep, setLoadingStep] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ laudo_id: string; artifact_id?: string; resultado: string; score: number; sem_github?: boolean; org_externa?: boolean; replaced?: boolean; content_changed?: boolean; version?: number } | null>(null)
-  const [duplicate, setDuplicate] = useState<{ laudo_id: string; artifact_id: string } | null>(null)
+  const [duplicate, setDuplicate] = useState<{ laudo_id: string; artifact_id: string; has_github?: boolean; lovable_project_id?: string } | null>(null)
 
   const detectHint = (u: string) => {
     if (!u) return null
@@ -198,7 +198,7 @@ export default function SubmitPage() {
       setLoadingStep(2)
       const data = await res.json()
       if (res.status === 409) {
-        setDuplicate({ laudo_id: data.existing_laudo_id, artifact_id: data.existing_artifact_id })
+        setDuplicate({ laudo_id: data.existing_laudo_id, artifact_id: data.existing_artifact_id, has_github: data.has_github, lovable_project_id: data.lovable_project_id })
         setLoading(false)
         return
       }
@@ -240,6 +240,20 @@ export default function SubmitPage() {
                 <h1 className="text-2xl font-bold text-foreground">Artefato já analisado</h1>
                 <p className="text-muted-foreground mt-1">Este artefato já possui um laudo. O que deseja fazer?</p>
               </div>
+              {!duplicate.has_github && duplicate.lovable_project_id && (
+                <a
+                  href={`https://lovable.dev/projects/${duplicate.lovable_project_id}/settings/integrations?connector=github&subtab=connectors`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-amber-600 text-white font-semibold rounded-xl hover:bg-amber-500 transition-colors"
+                >
+                  <GitBranch className="h-4 w-4" />
+                  Conectar GitHub no Lovable
+                </a>
+              )}
+              {!duplicate.has_github && !duplicate.lovable_project_id && url.includes('lovable') && (
+                <p className="text-xs text-amber-400/80">Este projeto não está no GitHub. Conecte pelo Lovable → Settings → GitHub.</p>
+              )}
               <div className="flex flex-col gap-3">
                 <button
                   onClick={() => router.push(`/laudos/${duplicate.laudo_id}`)}
