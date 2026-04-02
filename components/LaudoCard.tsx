@@ -67,19 +67,11 @@ export function LaudoCard({ id, artifactId, name, type, resultado, score, resumo
 
   return (
     <div className="group bg-card rounded-xl border border-border shadow-sm hover:border-primary/30 hover:shadow-md transition-all overflow-hidden">
-      {(() => {
-        // Screenshot real via thum.io para URLs públicas (não preview-- com token)
-        const thumbUrl = sourceUrl && !sourceUrl.includes('__lovable_token') && !sourceUrl.includes('lovable.dev/')
-          ? `https://image.thum.io/get/width/600/crop/400/${sourceUrl}`
-          : null
-        const imgSrc = thumbUrl ?? previewUrl
-        if (!imgSrc) return null
-        return (
-          <Link href={`/laudos/${id}`} className="block h-32 bg-muted overflow-hidden">
-            <img src={imgSrc} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" />
-          </Link>
-        )
-      })()}
+      {previewUrl && (
+        <Link href={`/laudos/${id}`} className="block h-32 bg-muted overflow-hidden">
+          <img src={previewUrl} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" />
+        </Link>
+      )}
       <Link href={`/laudos/${id}`} className="block p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
