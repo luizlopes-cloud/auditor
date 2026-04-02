@@ -122,6 +122,10 @@ export default function LaudoDetailPage() {
   const [fixResult, setFixResult] = useState<any | null>(null)
   const [loadingFix, setLoadingFix] = useState(false)
 
+  // GitHub link inline
+  const [ghInput, setGhInput] = useState('')
+  const [ghLinking, setGhLinking] = useState(false)
+
   const [activePanel, setActivePanel] = useState<'ui' | 'code' | 'spec' | 'acessos' | 'fix' | null>(null)
   const togglePanel = (panel: typeof activePanel) => setActivePanel(prev => prev === panel ? null : panel)
 
@@ -461,10 +465,7 @@ export default function LaudoDetailPage() {
       </div>
 
       {/* GitHub actions */}
-      {artifact && !artifact.github_url && (() => {
-        const [ghInput, setGhInput] = useState('')
-        const [ghLinking, setGhLinking] = useState(false)
-        return (
+      {artifact && !artifact.github_url && (
         <div className="bg-amber-950/20 border border-amber-700/40 rounded-xl p-5 mb-6 space-y-3">
           <div className="flex items-center gap-2">
             <GitBranch className="h-4 w-4 text-amber-400" />
@@ -508,8 +509,7 @@ export default function LaudoDetailPage() {
             </a>
           )}
         </div>
-        )
-      })()}
+      )}
       {artifact?.github_url && (() => {
         const match = artifact.github_url.match(/github\.com\/([^/]+)\//)
         const owner = match?.[1]?.toLowerCase()
