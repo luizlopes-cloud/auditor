@@ -168,7 +168,7 @@ export default function SubmitPage() {
   const [loadingStep, setLoadingStep] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ laudo_id: string; artifact_id?: string; resultado: string; score: number; sem_github?: boolean; org_externa?: boolean; replaced?: boolean; content_changed?: boolean; version?: number } | null>(null)
-  const [duplicate, setDuplicate] = useState<{ laudo_id: string; artifact_id: string; has_github?: boolean; lovable_project_id?: string } | null>(null)
+  const [duplicate, setDuplicate] = useState<{ laudo_id: string; artifact_id: string; existing_name?: string; has_github?: boolean; lovable_project_id?: string } | null>(null)
   const [editorBlock, setEditorBlock] = useState<{ lovable_project_id?: string } | null>(null)
 
   const detectHint = (u: string) => {
@@ -220,7 +220,7 @@ export default function SubmitPage() {
       setLoadingStep(2)
       const data = await res.json()
       if (res.status === 409) {
-        setDuplicate({ laudo_id: data.existing_laudo_id, artifact_id: data.existing_artifact_id, has_github: data.has_github, lovable_project_id: data.lovable_project_id })
+        setDuplicate({ laudo_id: data.existing_laudo_id, artifact_id: data.existing_artifact_id, existing_name: data.existing_name, has_github: data.has_github, lovable_project_id: data.lovable_project_id })
         setLoading(false)
         return
       }
@@ -309,6 +309,9 @@ export default function SubmitPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Artefato já analisado</h1>
+                {duplicate.existing_name && (
+                  <p className="text-primary font-semibold mt-1">{duplicate.existing_name}</p>
+                )}
                 <p className="text-muted-foreground mt-1">Este artefato já possui um laudo. O que deseja fazer?</p>
               </div>
               {!duplicate.has_github && duplicate.lovable_project_id && (

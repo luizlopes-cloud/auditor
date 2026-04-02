@@ -215,7 +215,7 @@ export async function POST(req: NextRequest) {
 
       const { data: existing } = await (supabase
         .from('artifacts')
-        .select('id, content, github_url, laudos(id)') as any)
+        .select('id, name, content, github_url, lovable_project_id, laudos(id)') as any)
         .or(orConditions.join(','))
         .limit(1)
         .maybeSingle()
@@ -232,6 +232,7 @@ export async function POST(req: NextRequest) {
             error: 'Este artefato já foi analisado anteriormente.',
             existing_laudo_id: existingLaudoId ?? null,
             existing_artifact_id: existing.id,
+            existing_name: (existing as any).name ?? null,
             has_github: !!(existing as any).github_url,
             lovable_project_id: (existing as any).lovable_project_id ?? lovableProjectId,
           }, { status: 409 })
