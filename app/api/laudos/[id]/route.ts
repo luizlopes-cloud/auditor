@@ -83,7 +83,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Laudo não encontrado' }, { status: 404 })
     }
 
-    // Deleta laudo (artifact fica órfão temporariamente, FK cascade cuida)
+    // Deleta só este laudo
     const { error: laudoErr } = await supabase
       .from('laudos')
       .delete()
@@ -93,8 +93,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'Erro ao deletar laudo' }, { status: 500 })
     }
 
-    // Deleta artifact associado
-    await supabase.from('artifacts').delete().eq('id', laudo.artifact_id)
+    // Só deleta artifact se não tem mais nenhum laudo vinculado
+    const { count } = await supabase
+      .from('laudos')
+      .select('id', { count: 'exact', head: true })
+      .eq('artifact_id', laudo.artifact_id)
+
+    if (count === 0) {
+      await supabase.from('artifacts').delete().eq('id', laudo.artifact_id)
+    }
 
     return NextResponse.json({ ok: true })
   } catch (err) {

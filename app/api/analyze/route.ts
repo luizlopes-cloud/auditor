@@ -231,10 +231,8 @@ export async function POST(req: NextRequest) {
           }, { status: 409 })
         }
         existingArtifactId = existing.id
-        // Compara conteúdo: se mudou, é nova versão; se igual, substitui
-        const oldContent = (existing.content ?? '').slice(0, 5000)
-        const newContent = artifactContent.slice(0, 5000)
-        contentChanged = oldContent !== newContent
+        // Re-análise com force: sempre substitui o laudo existente (não cria versão)
+        contentChanged = false
       }
     }
 

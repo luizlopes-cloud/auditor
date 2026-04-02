@@ -34,6 +34,15 @@ async function getDashboardData() {
       .order('created_at', { ascending: true }),
   ])
 
+  // Deduplica: só o laudo mais recente por artifact
+  const seen = new Set<string>()
+  const dedupedRecent = (recentLaudos ?? []).filter((l: any) => {
+    const art = Array.isArray(l.artifacts) ? l.artifacts[0] : l.artifacts
+    if (!art?.id || seen.has(art.id)) return false
+    seen.add(art.id)
+    return true
+  })
+
   const total = allLaudos?.length ?? 0
   const aprovados = allLaudos?.filter(l => l.resultado === 'aprovado').length ?? 0
   const ajustes = allLaudos?.filter(l => l.resultado === 'ajustes_necessarios').length ?? 0
@@ -87,7 +96,7 @@ async function getDashboardData() {
     return { label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }), total: t, media: t > 0 ? Math.round(soma / t) : null }
   })
 
-  return { laudos: recentLaudos ?? [], total, aprovados, ajustes, reprovados, ranking, categorias, tendencia }
+  return { laudos: dedupedRecent, total, aprovados, ajustes, reprovados, ranking, categorias, tendencia }
 }
 
 export default async function DashboardPage() {
