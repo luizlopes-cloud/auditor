@@ -31,6 +31,7 @@ export default function AuditarPage() {
   const [result, setResult] = useState<{ laudo_id: string; resultado: string; score: number; sem_github?: boolean } | null>(null)
   const [duplicate, setDuplicate] = useState<{ laudo_id: string; artifact_id?: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [dragOver, setDragOver] = useState(false)
 
   const [url, setUrl] = useState('')
   const [githubUrl, setGithubUrl] = useState('')
@@ -41,13 +42,26 @@ export default function AuditarPage() {
   const [description, setDescription] = useState('')
   const [submittedBy, setSubmittedBy] = useState('')
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const loadFile = (file: File) => {
     setFileName(file.name)
     const reader = new FileReader()
     reader.onload = ev => setFileContent(ev.target?.result as string)
     reader.readAsText(file)
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    loadFile(file)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files?.[0]
+    if (!file) return
+    setMode('file')
+    loadFile(file)
   }
 
   const detectUrlHint = (u: string): string => {
@@ -202,7 +216,22 @@ export default function AuditarPage() {
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form
+          onSubmit={handleSubmit}
+          onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+          onDragEnter={e => { e.preventDefault(); setDragOver(true) }}
+          onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false) }}
+          onDrop={handleDrop}
+          className="space-y-6 relative"
+        >
+          {dragOver && (
+            <div className="absolute inset-0 z-20 rounded-xl border-2 border-dashed border-primary bg-primary/5 flex items-center justify-center pointer-events-none">
+              <div className="text-center">
+                <Upload className="h-10 w-10 text-primary mx-auto mb-2" />
+                <p className="text-primary font-medium text-sm">Solte o arquivo para analisar</p>
+              </div>
+            </div>
+          )}
           <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
             <div className="flex border-b border-border">
               {MODES.map(({ id, label, icon: Icon }) => (
@@ -333,7 +362,7 @@ export default function AuditarPage() {
                   <input
                     ref={fileRef}
                     type="file"
-                    accept=".py,.ts,.js,.sql,.json,.yaml,.yml,.txt,.md,.csv,.sh"
+                    accept=".py,.ts,.tsx,.js,.jsx,.sql,.json,.yaml,.yml,.txt,.md,.csv,.sh,.go,.rb,.php,.java,.r,.ipynb,.toml,.xml,.html,.env"
                     onChange={handleFileChange}
                     className="block w-full text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary/15 file:text-primary hover:file:bg-primary/25"
                   />
