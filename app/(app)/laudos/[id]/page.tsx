@@ -950,6 +950,15 @@ export default function LaudoDetailPage() {
         </div>
       )}
 
+      {activePanel === 'ui' && reviewUi && typeof reviewUi === 'string' && (
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Monitor className="h-4 w-4 text-violet-400" /> Revisão de UI</h2>
+            <button onClick={() => { setReviewUi(null); setActivePanel(null) }} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+          </div>
+          <p className="text-sm text-red-400">{reviewUi}</p>
+        </div>
+      )}
       {activePanel === 'ui' && reviewUi && typeof reviewUi === 'object' && (
         <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
           <div className="flex items-center justify-between">
@@ -972,6 +981,15 @@ export default function LaudoDetailPage() {
         </div>
       )}
 
+      {activePanel === 'code' && reviewCode && typeof reviewCode === 'string' && (
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Code2 className="h-4 w-4 text-cyan-400" /> Revisão de Código</h2>
+            <button onClick={() => { setReviewCode(null); setActivePanel(null) }} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+          </div>
+          <p className="text-sm text-red-400">{reviewCode}</p>
+        </div>
+      )}
       {activePanel === 'code' && reviewCode && typeof reviewCode === 'object' && (
         <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
           <div className="flex items-center justify-between">
