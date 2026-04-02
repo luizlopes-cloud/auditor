@@ -75,24 +75,45 @@ async function fetchRepoTree(owner: string, repo: string): Promise<string[]> {
   }
 }
 
-const IMPORTANT_PATTERNS = [
-  /^main\.(py|ts|js|go)$/,
-  /^app\.(py|ts|js)$/,
-  /^index\.(py|ts|js)$/,
-  /^server\.(py|ts|js)$/,
-  /^workflow\.json$/,
-  /^flow\.json$/,
-  /requirements\.txt$/,
-  /\.sql$/,
-  /\.env\.example$/,
-]
-
 function scoreFile(path: string): number {
+  const lower = path.toLowerCase()
   const file = path.split('/').pop() ?? ''
-  for (let i = 0; i < IMPORTANT_PATTERNS.length; i++) {
-    if (IMPORTANT_PATTERNS[i].test(file)) return IMPORTANT_PATTERNS.length - i
-  }
-  return 0
+
+  // Ignorar assets, configs, locks
+  if (/\.(png|jpg|svg|ico|woff|ttf|lock|map)$/i.test(file)) return 0
+  if (lower.startsWith('node_modules/') || lower.startsWith('.git/') || lower.startsWith('.next/')) return 0
+  if (file === 'package-lock.json' || file === 'yarn.lock' || file === 'pnpm-lock.yaml') return 0
+
+  let score = 0
+
+  // Páginas e rotas (Next.js, React) — alta prioridade
+  if (/\/page\.(tsx?|jsx?)$/.test(lower)) score += 10
+  if (/\/route\.(tsx?|js)$/.test(lower)) score += 8
+  if (/\/layout\.(tsx?|jsx?)$/.test(lower)) score += 7
+  if (lower.includes('/pages/') && /\.(tsx?|jsx?)$/.test(lower)) score += 9
+
+  // Componentes
+  if (lower.includes('/components/') && /\.(tsx?|jsx?)$/.test(lower)) score += 6
+
+  // Hooks, lib, utils, services
+  if (lower.includes('/hooks/') || lower.includes('/lib/') || lower.includes('/utils/')) score += 5
+  if (lower.includes('/services/') || lower.includes('/api/')) score += 5
+
+  // Arquivos raiz importantes
+  if (/^(main|app|index|server)\.(py|ts|js|go)$/.test(file)) score += 10
+  if (file === 'schema.prisma' || file === 'schema.sql') score += 8
+  if (/\.sql$/.test(file)) score += 4
+  if (file === '.env.example') score += 3
+  if (file === 'workflow.json' || file === 'flow.json') score += 7
+
+  // Tipos e configuração
+  if (lower.includes('/types') && /\.(ts|d\.ts)$/.test(lower)) score += 4
+  if (file === 'supabase.ts' || file === 'database.ts') score += 6
+
+  // Código fonte em geral
+  if (/\.(tsx?|jsx?|py|go|rb|sql)$/.test(file) && score === 0) score += 1
+
+  return score
 }
 
 export async function fetchRepoContent(url: string): Promise<RepoContent> {
@@ -146,12 +167,14 @@ export async function fetchRepoContent(url: string): Promise<RepoContent> {
   ])
 
   // Seleciona arquivos mais relevantes e busca em paralelo
-  const filesToFetch = tree
-    .filter(f => !f.startsWith('node_modules/') && !f.startsWith('.git/'))
+  const scoredFiles = tree
+    .filter(f => !f.startsWith('node_modules/') && !f.startsWith('.git/') && !f.startsWith('.next/'))
     .map(f => ({ path: f, score: scoreFile(f) }))
     .filter(f => f.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 4)
+
+  const filesToFetch = scoredFiles
+    .slice(0, 12)
     .map(f => f.path)
 
   const fileContents = await Promise.all(
@@ -159,11 +182,24 @@ export async function fetchRepoContent(url: string): Promise<RepoContent> {
       if (filePath === 'package.json' || filePath === 'requirements.txt') return null
       const content = await fetchFileContent(owner, repo, filePath)
       if (!content) return null
-      return { path: filePath, content: content.slice(0, 3000) }
+      return { path: filePath, content: content.slice(0, 5000) }
     })
   )
 
   const mainFiles = fileContents.filter((f): f is { path: string; content: string } => f !== null)
+
+  // Inclui árvore de arquivos como contexto (ajuda a IA mapear a estrutura)
+  const sourceFiles = tree.filter(f =>
+    !f.startsWith('node_modules/') && !f.startsWith('.git/') && !f.startsWith('.next/') &&
+    !/\.(png|jpg|svg|ico|woff|ttf|lock|map)$/i.test(f) &&
+    f !== 'package-lock.json' && f !== 'yarn.lock' && f !== 'pnpm-lock.yaml'
+  )
+  if (sourceFiles.length > 0) {
+    mainFiles.unshift({
+      path: '__TREE__.txt',
+      content: `Estrutura de arquivos do repositório (${sourceFiles.length} arquivos):\n${sourceFiles.join('\n')}`,
+    })
+  }
 
   return {
     readme: readme.slice(0, 5000),
