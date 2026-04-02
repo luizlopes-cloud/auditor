@@ -26,7 +26,9 @@ export async function GET(req: NextRequest) {
           submitted_by,
           source,
           source_url,
-          github_url
+          github_url,
+          preview_url,
+          description
         )
       `)
       .order('created_at', { ascending: false })

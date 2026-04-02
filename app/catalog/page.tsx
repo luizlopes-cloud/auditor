@@ -94,7 +94,12 @@ function ArtifactCard({ item }: { item: CatalogItem }) {
   return (
     <Link href={`/catalog/${item.id}`} className="group block">
       <div className="bg-card rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 border border-border hover:border-primary/30">
-        <div className={cn('relative h-36 bg-gradient-to-br flex items-center justify-center', cfg.gradient)}>
+        <div className={cn('relative h-36 bg-gradient-to-br flex items-center justify-center overflow-hidden', cfg.gradient)}>
+          {(art as any).preview_url ? (
+            <img src={(art as any).preview_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80" />
+          ) : (
+            <Icon className="h-12 w-12 text-white/20" />
+          )}
           <span className={cn('absolute top-3 left-3 px-2.5 py-1 rounded-md text-xs font-semibold backdrop-blur-sm', cfg.badge)}>
             {cfg.badgeText}
           </span>
@@ -109,7 +114,6 @@ function ArtifactCard({ item }: { item: CatalogItem }) {
               Em revisão
             </span>
           )}
-          <Icon className="h-12 w-12 text-white/20" />
         </div>
 
         <div className="p-5">

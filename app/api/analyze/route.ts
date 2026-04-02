@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
     let artifactSourceUrl: string | null = null
     let semGithub = false
     let orgExterna = false
+    let previewUrl: string | null = null
 
     // ── MODE: URL ───────────────────────────────────────────────────────────
     if (mode === 'url') {
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest) {
         if (parsed && !ORGS_APROVADAS.includes(parsed.owner.toLowerCase())) {
           orgExterna = true
         }
+        if (parsed) previewUrl = `https://opengraph.githubassets.com/1/${parsed.owner}/${parsed.repo}`
         const repoContent = await fetchRepoContent(cleanUrl)
         artifactName = name?.trim() || parseGitHubUrl(cleanUrl)?.repo || 'Repositório GitHub'
         artifactType = 'script'
@@ -78,6 +80,7 @@ export async function POST(req: NextRequest) {
         const fetched = await fetchUrlContent(cleanUrl)
         artifactSourceUrl = cleanUrl
         artifactSource = 'url'
+        if (fetched.previewUrl) previewUrl = fetched.previewUrl
 
         const effectiveGithubUrl = github_url?.trim() || fetched.detectedGithubUrl
         if (effectiveGithubUrl) {
@@ -181,9 +184,7 @@ export async function POST(req: NextRequest) {
     if (existingArtifactId) {
       artifact = { id: existingArtifactId }
     } else {
-      const result = await supabase
-        .from('artifacts')
-        .insert({
+      const insertData: Record<string, unknown> = {
           name: artifactName,
           type: artifactType,
           source: artifactSource,
@@ -193,7 +194,11 @@ export async function POST(req: NextRequest) {
           description: description ?? null,
           submitted_by: submitted_by.trim(),
           status: 'analyzing',
-        })
+        }
+      if (previewUrl) insertData.preview_url = previewUrl
+      const result = await supabase
+        .from('artifacts')
+        .insert(insertData as any)
         .select()
         .single()
       artifact = result.data

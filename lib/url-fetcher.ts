@@ -47,7 +47,8 @@ export interface FetchedUrl {
   type: UrlType
   content: string
   title: string
-  detectedGithubUrl?: string // se Lovable tiver repo vinculado
+  detectedGithubUrl?: string
+  previewUrl?: string
 }
 
 export function detectUrlType(url: string): UrlType {
@@ -213,6 +214,14 @@ async function fetchDeployedPage(url: string, type: UrlType): Promise<FetchedUrl
   const githubMatch = html.match(/https:\/\/github\.com\/[\w.-]+\/[\w.-]+/g)
   const detectedGithubUrl = githubMatch?.[0]
 
+  // Extrai og:image para preview visual
+  const ogImageMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+    ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
+  let previewUrl = ogImageMatch?.[1]
+  if (previewUrl && !previewUrl.startsWith('http')) {
+    try { previewUrl = new URL(previewUrl, url).toString() } catch {}
+  }
+
   // Extrai scripts inline
   const inlineScripts: string[] = []
   const scriptRegex = /<script(?![^>]*src)[^>]*>([\s\S]*?)<\/script>/gi
@@ -270,5 +279,6 @@ async function fetchDeployedPage(url: string, type: UrlType): Promise<FetchedUrl
     content: parts.join('\n'),
     title,
     detectedGithubUrl,
+    previewUrl,
   }
 }
