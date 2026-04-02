@@ -538,11 +538,14 @@ export default function SubmitPage() {
                       type="text"
                       value={githubUrl}
                       onChange={e => setGithubUrl(e.target.value)}
-                      placeholder={hint?.label === 'Vercel' || hint?.label === 'Lovable' ? 'github.com/org/repo — recomendado para análise completa' : 'GitHub do projeto (opcional)'}
+                      placeholder={hint?.label === 'Vercel' || hint?.label === 'Lovable' ? 'github.com/org/repo' : 'GitHub do projeto (opcional)'}
                       className={cn(inputCls, (hint?.label === 'Vercel' || hint?.label === 'Lovable') && !githubUrl && 'border-amber-500/50 ring-1 ring-amber-500/20')}
                     />
                     {(hint?.label === 'Vercel' || hint?.label === 'Lovable') && !githubUrl && (
-                      <p className="text-xs text-amber-400/70 mt-1">Sem o GitHub, a análise usa só HTML/JS compilado e o botão "Corrigir Problemas" fica indisponível.</p>
+                      <p className="text-xs text-amber-400/70 mt-1">Cole o link do repositório para análise completa. Sem ele, só analisamos o HTML compilado.</p>
+                    )}
+                    {(hint?.label === 'Vercel' || hint?.label === 'Lovable') && githubUrl && (
+                      <p className="text-xs text-emerald-400/70 mt-1">GitHub detectado — análise completa com código-fonte.</p>
                     )}
                   </div>
                 ) : (
