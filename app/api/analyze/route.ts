@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient()
     const start = Date.now()
 
-    const ORGS_APROVADAS = ['seazone-socios', 'businessoperations-seazone', 'seazone']
+    const ORGS_APROVADAS = ['seazone-socios', 'businessoperations-seazone', 'seazone', 'luizlopes-cloud']
 
     let analysisContext = ''
     let artifactName = name?.trim() || 'Sem nome'
