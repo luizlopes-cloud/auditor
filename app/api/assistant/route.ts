@@ -66,7 +66,7 @@ Seja conciso, direto, em português brasileiro. Não use markdown excessivo — 
       system: systemPrompt,
       messages,
       temperature: 0.7,
-      maxTokens: 600,
+      maxOutputTokens: 600,
     })
 
     return NextResponse.json({ text: result.text })
