@@ -5,6 +5,12 @@ import { buildAnalysisContext, detectArtifactType, parseFileContent } from '@/li
 import { fetchRepoContent, parseGitHubUrl } from '@/lib/github'
 import { detectUrlType, fetchUrlContent, detectEditorUrl } from '@/lib/url-fetcher'
 
+function extractLovableName(url: string): string | null {
+  const m = url.match(/(?:preview--)?([a-z0-9][a-z0-9-]+)\.lovable\.app/)
+  if (!m || m[1] === 'preview') return null
+  return m[1].replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -136,7 +142,7 @@ export async function POST(req: NextRequest) {
             const repoContent = await fetchRepoContent(effectiveGithubUrl)
             artifactGithubUrl = effectiveGithubUrl
             artifactContent = repoContent.mainFiles.map(f => `// ${f.path}\n${f.content}`).join('\n\n')
-            artifactName = name?.trim() || fetched.title || parseGitHubUrl(effectiveGithubUrl)?.repo || 'Aplicação'
+            artifactName = name?.trim() || extractLovableName(cleanUrl) || fetched.title || parseGitHubUrl(effectiveGithubUrl)?.repo || 'Aplicação'
             artifactType = 'script'
             artifactSource = 'github'
 
@@ -152,15 +158,12 @@ export async function POST(req: NextRequest) {
             }
           } catch {
             artifactContent = fetched.content
-            artifactName = name?.trim() || fetched.title || 'Aplicação'
+            artifactName = name?.trim() || extractLovableName(cleanUrl) || fetched.title || 'Aplicação'
             analysisContext = `## Artefato: ${artifactName}\n**URL:** ${cleanUrl}\n**Tipo detectado:** ${urlType}\n${fetched.content}`
           }
         } else {
           artifactContent = fetched.content
-          // Extrai nome do subdomínio Lovable (preview--nome.lovable.app → nome)
-          const lovableNameMatch = cleanUrl.match(/(?:preview--)?([a-z0-9-]+)\.lovable\.app/)
-          const lovableName = lovableNameMatch?.[1]?.replace(/-/g, ' ')?.replace(/\b\w/g, (c: string) => c.toUpperCase())
-          artifactName = name?.trim() || (lovableName && lovableName !== 'Preview') ? lovableName! : fetched.title || 'Aplicação'
+          artifactName = name?.trim() || extractLovableName(cleanUrl) || fetched.title || 'Aplicação'
           analysisContext = `## Artefato: ${artifactName}\n**URL:** ${cleanUrl}\n**Tipo detectado:** ${urlType}\n\n${fetched.content}`
           if (description) analysisContext = `**Objetivo declarado:** ${description}\n\n` + analysisContext
           if (urlType === 'lovable' || urlType === 'vercel') semGithub = true
