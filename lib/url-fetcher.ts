@@ -1,4 +1,4 @@
-export type UrlType = 'github-repo' | 'github-file' | 'lovable' | 'vercel' | 'external'
+export type UrlType = 'github-repo' | 'github-file' | 'github-pr' | 'lovable' | 'vercel' | 'external'
 
 // Retorna mensagem de erro se for URL de editor (não deployada), null se for válida
 export function detectEditorUrl(url: string): string | null {
@@ -54,6 +54,7 @@ export function detectUrlType(url: string): UrlType {
     if (host === 'github.com') {
       // github.com/owner/repo/blob/branch/file.ext
       const parts = path.replace(/^\//, '').split('/')
+      if (parts.length >= 4 && (parts[2] === 'pull' || parts[2] === 'pulls')) return 'github-pr'
       if (parts.length >= 5 && parts[2] === 'blob') return 'github-file'
       return 'github-repo'
     }

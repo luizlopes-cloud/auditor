@@ -20,7 +20,8 @@ function githubHeaders(): HeadersInit {
 interface ParsedGitHubUrl {
   owner: string
   repo: string
-  filePath?: string // presente quando URL aponta para arquivo específico
+  filePath?: string
+  pullNumber?: number
 }
 
 export function parseGitHubUrl(url: string): ParsedGitHubUrl | null {
@@ -30,6 +31,11 @@ export function parseGitHubUrl(url: string): ParsedGitHubUrl | null {
     if (parts.length < 2) return null
     const owner = parts[0]
     const repo = parts[1]
+    // github.com/owner/repo/pull/123
+    if (parts.length >= 4 && (parts[2] === 'pull' || parts[2] === 'pulls')) {
+      const pullNumber = parseInt(parts[3], 10)
+      if (!isNaN(pullNumber)) return { owner, repo, pullNumber }
+    }
     // github.com/owner/repo/blob/branch/path/to/file.ext
     if (parts.length >= 5 && parts[2] === 'blob') {
       const filePath = parts.slice(4).join('/')
@@ -38,6 +44,62 @@ export function parseGitHubUrl(url: string): ParsedGitHubUrl | null {
     return { owner, repo }
   } catch {
     return null
+  }
+}
+
+export async function fetchPRContent(url: string): Promise<RepoContent & { prTitle: string; prDescription: string }> {
+  const parsed = parseGitHubUrl(url)
+  if (!parsed?.pullNumber) throw new Error('URL de PR inválida')
+
+  const { owner, repo, pullNumber } = parsed
+
+  // Busca info do PR
+  const prRes = await fetchGitHub(`/repos/${owner}/${repo}/pulls/${pullNumber}`)
+  if (!prRes.ok) {
+    if (prRes.status === 404) throw new Error(`PR #${pullNumber} não encontrado em ${owner}/${repo}`)
+    throw new Error(`Erro ao acessar PR: HTTP ${prRes.status}`)
+  }
+  const pr = await prRes.json()
+
+  // Busca arquivos alterados no PR
+  const filesRes = await fetchGitHub(`/repos/${owner}/${repo}/pulls/${pullNumber}/files`)
+  if (!filesRes.ok) throw new Error('Erro ao buscar arquivos do PR')
+  const files = await filesRes.json()
+
+  // Busca conteúdo dos arquivos alterados (patch + conteúdo completo dos mais relevantes)
+  const mainFiles: { path: string; content: string }[] = []
+
+  // Adiciona resumo do PR
+  mainFiles.push({
+    path: '__PR_INFO__.md',
+    content: `# PR #${pullNumber}: ${pr.title}\n\n${pr.body ?? 'Sem descrição'}\n\n**Branch:** ${pr.head?.ref} → ${pr.base?.ref}\n**Autor:** ${pr.user?.login}\n**Status:** ${pr.state}\n**Arquivos alterados:** ${files.length}`,
+  })
+
+  // Adiciona diff/patch de cada arquivo
+  for (const file of files.slice(0, 15)) {
+    const patch = file.patch ?? ''
+    let content = `// ${file.filename} (${file.status}: +${file.additions} -${file.deletions})\n`
+    if (patch) {
+      content += patch.slice(0, 4000)
+    }
+    // Para arquivos novos ou modificados importantes, busca conteúdo completo
+    if ((file.status === 'added' || file.status === 'modified') && scoreFile(file.filename) > 3) {
+      const fullContent = await fetchFileContent(owner, repo, file.filename)
+      if (fullContent) {
+        content += `\n\n// Conteúdo completo:\n${fullContent.slice(0, 5000)}`
+      }
+    }
+    mainFiles.push({ path: file.filename, content })
+  }
+
+  return {
+    readme: '',
+    packageJson: null,
+    mainFiles,
+    language: pr.head?.repo?.language ?? null,
+    description: pr.title,
+    prTitle: pr.title,
+    prDescription: pr.body ?? '',
   }
 }
 

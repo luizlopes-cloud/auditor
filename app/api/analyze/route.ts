@@ -79,7 +79,19 @@ export async function POST(req: NextRequest) {
 
       const urlType = detectUrlType(cleanUrl)
 
-      if (urlType === 'github-repo' || urlType === 'github-file') {
+      if (urlType === 'github-pr') {
+        // Pull Request — analisa arquivos alterados
+        const parsed = parseGitHubUrl(cleanUrl)
+        if (parsed && !ORGS_APROVADAS.includes(parsed.owner.toLowerCase())) orgExterna = true
+        const { fetchPRContent } = await import('@/lib/github')
+        const prContent = await fetchPRContent(cleanUrl)
+        artifactName = name?.trim() || `PR #${parsed?.pullNumber}: ${prContent.prTitle}`
+        artifactType = 'script'
+        artifactSource = 'github'
+        artifactGithubUrl = cleanUrl
+        artifactContent = prContent.mainFiles.map(f => `// ${f.path}\n${f.content}`).join('\n\n')
+        analysisContext = buildAnalysisContext(artifactName, artifactContent, description ?? prContent.prDescription, { url: cleanUrl, language: prContent.language })
+      } else if (urlType === 'github-repo' || urlType === 'github-file') {
         // Verifica se o repo está na org certa
         const parsed = parseGitHubUrl(cleanUrl)
         if (parsed && !ORGS_APROVADAS.includes(parsed.owner.toLowerCase())) {
