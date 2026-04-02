@@ -17,15 +17,17 @@ const SimilarSchema = z.object({
   })),
 })
 
-export async function GET(
-  _req: NextRequest,
+export async function POST(
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
+    const body = await req.json().catch(() => ({}))
+    const funcionalidades = body.funcionalidades ?? []
+
     const supabase = await createClient()
 
-    // Busca o laudo atual
     const { data: current } = await supabase
       .from('laudos')
       .select('id, resumo, artifacts(id, name, type, description)')
@@ -36,7 +38,6 @@ export async function GET(
 
     const currentArtifact = Array.isArray(current.artifacts) ? current.artifacts[0] : current.artifacts
 
-    // Busca outros laudos (excluindo o atual e reprovados)
     const { data: outros } = await supabase
       .from('laudos')
       .select('id, resumo, resultado, artifacts(id, name, type, description)')
@@ -56,25 +57,38 @@ export async function GET(
       .filter(Boolean)
       .join('\n\n---\n\n')
 
-    const prompt = `Você é um analista de artefatos de automação e integração da Seazone.
+    const funcList = funcionalidades.length > 0
+      ? funcionalidades.map((f: any) => `- [${f.tipo}] ${f.nome}: ${f.descricao}`).join('\n')
+      : 'Não mapeadas'
+
+    const prompt = `Você é um analista de artefatos da Seazone. Identifique artefatos que DUPLICAM funcionalidades do artefato atual.
 
 ARTEFATO ATUAL:
 Nome: ${currentArtifact?.name}
 Tipo: ${currentArtifact?.type}
 Descrição: ${currentArtifact?.description ?? '—'}
-Resumo da análise: ${current.resumo}
+Resumo: ${current.resumo}
+
+FUNCIONALIDADES MAPEADAS DO ARTEFATO ATUAL:
+${funcList}
 
 OUTROS ARTEFATOS NO CATÁLOGO:
 ${lista}
 
-Identifique quais artefatos do catálogo têm funcionalidades sobrepostas, duplicadas ou que poderiam ser unificadas com o artefato atual.
-Seja criterioso — só liste se houver sobreposição real de funcionalidade ou objetivo.
-Para cada similar encontrado, explique brevemente o motivo e dê uma recomendação de unificação.
-Se não houver nenhum similar relevante, retorne lista vazia.
+Compare as FUNCIONALIDADES CONCRETAS do artefato atual (telas, filtros, tabelas, formulários, integrações) com o que os outros artefatos fazem baseado em seu resumo e descrição.
+
+Identifique SOMENTE os que têm sobreposição REAL de funcionalidade — não basta serem do mesmo tipo ou área.
+Exemplos de sobreposição real:
+- Ambos mostram dados de reservas do mesmo imóvel
+- Ambos têm formulário de cadastro de investidor
+- Ambos consultam a mesma API/tabela para o mesmo propósito
+
+Para cada similar, explique qual funcionalidade específica se sobrepõe e recomende unificar ou diferenciar.
+Se não houver sobreposição real, retorne lista vazia.
 Responda em português brasileiro.`
 
     const result = await generateText({
-      model: openrouter(process.env.OPENROUTER_MODEL ?? 'google/gemini-flash-2.0'),
+      model: openrouter('google/gemini-2.0-flash-001'),
       experimental_output: Output.object({ schema: SimilarSchema }),
       prompt,
       temperature: 0,

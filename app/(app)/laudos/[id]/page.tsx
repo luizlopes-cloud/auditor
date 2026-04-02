@@ -87,18 +87,28 @@ export default function LaudoDetailPage() {
       .catch(() => setError('Erro ao carregar laudo'))
       .finally(() => setLoading(false))
 
-    // Auto-load similares
-    fetch(`/api/laudos/${id}/similar`)
-      .then(r => r.json())
-      .then(d => setSimilares(d.similares ?? []))
-      .catch(() => setSimilares([]))
-      .finally(() => setLoadingSimilares(false))
-
-    // Auto-load funcionalidades
+    // Auto-load funcionalidades → depois roda similares com as funcionalidades
     fetch(`/api/laudos/${id}/funcionalidades`, { method: 'POST' })
       .then(r => r.json())
-      .then(d => setFuncionalidades(d.funcionalidades ?? []))
-      .catch(() => setFuncionalidades([]))
+      .then(d => {
+        const funcs = d.funcionalidades ?? []
+        setFuncionalidades(funcs)
+        // Agora roda similares usando as funcionalidades como base
+        fetch(`/api/laudos/${id}/similar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ funcionalidades: funcs }),
+        })
+          .then(r => r.json())
+          .then(d => setSimilares(d.similares ?? []))
+          .catch(() => setSimilares([]))
+          .finally(() => setLoadingSimilares(false))
+      })
+      .catch(() => {
+        setFuncionalidades([])
+        setSimilares([])
+        setLoadingSimilares(false)
+      })
       .finally(() => setLoadingFunc(false))
 
     // Load comments
