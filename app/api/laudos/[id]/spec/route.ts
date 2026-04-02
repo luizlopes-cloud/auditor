@@ -40,6 +40,9 @@ export async function POST(
     const { id } = await params
     const body = await req.json().catch(() => ({}))
     const funcionalidades = body.funcionalidades ?? []
+    const reviewUi = body.reviewUi ?? null
+    const reviewCode = body.reviewCode ?? null
+    const similares = body.similares ?? []
 
     const supabase = await createClient()
 
@@ -54,9 +57,24 @@ export async function POST(
     const artifact = Array.isArray(laudo.artifacts) ? laudo.artifacts[0] : laudo.artifacts
     if (!artifact) return NextResponse.json({ error: 'Artefato não encontrado' }, { status: 404 })
 
+    const checks = (laudo.checks as any[]) ?? []
+    const checksResumo = checks.map((c: any) => `- [${c.status}] ${c.categoria}/${c.item}: ${c.detalhe}`).join('\n')
+
     const funcList = funcionalidades.length > 0
       ? funcionalidades.map((f: any) => `- [${f.tipo}] ${f.nome}: ${f.descricao} (${f.status})`).join('\n')
       : 'Não mapeadas'
+
+    const uiResumo = reviewUi && typeof reviewUi === 'object'
+      ? `Score UI: ${reviewUi.score_ui}/100\n${reviewUi.resumo}\n${(reviewUi.categorias ?? []).map((c: any) => `${c.nome}: ${c.itens?.map((i: any) => `[${i.status}] ${i.item}`).join(', ')}`).join('\n')}`
+      : 'Não executada'
+
+    const codeResumo = reviewCode && typeof reviewCode === 'object'
+      ? `Score Código: ${reviewCode.score_code}/100\n${reviewCode.resumo}\n${(reviewCode.categorias ?? []).map((c: any) => `${c.nome}: ${c.itens?.map((i: any) => `[${i.status}] ${i.item}`).join(', ')}`).join('\n')}`
+      : 'Não executada'
+
+    const similaresResumo = similares.length > 0
+      ? similares.map((s: any) => `- ${s.motivo}: ${s.recomendacao}`).join('\n')
+      : 'Nenhum similar encontrado'
 
     const context = `Artefato: ${artifact.name}
 Tipo: ${artifact.type}
@@ -64,12 +82,23 @@ Descrição: ${artifact.description ?? 'Não informada'}
 GitHub: ${artifact.github_url ?? 'N/A'}
 URL: ${artifact.source_url ?? 'N/A'}
 
-Resumo da análise: ${laudo.resumo}
-Score: ${laudo.score}
-Resultado: ${laudo.resultado}
+=== ANÁLISE GERAL (Score ${laudo.score}/100 — ${laudo.resultado}) ===
+${laudo.resumo}
 
-Funcionalidades mapeadas:
-${funcList}`
+Checks:
+${checksResumo}
+
+=== FUNCIONALIDADES MAPEADAS ===
+${funcList}
+
+=== REVISÃO DE UI ===
+${uiResumo}
+
+=== REVISÃO DE CÓDIGO ===
+${codeResumo}
+
+=== ARTEFATOS SIMILARES ===
+${similaresResumo}`
 
     const result = await generateText({
       model: openrouter('google/gemini-2.0-flash-001'),

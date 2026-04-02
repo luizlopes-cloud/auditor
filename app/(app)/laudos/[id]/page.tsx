@@ -642,7 +642,7 @@ export default function LaudoDetailPage() {
             fetch(`/api/laudos/${id}/spec`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ funcionalidades: funcionalidades ?? [] }),
+              body: JSON.stringify({ funcionalidades: funcionalidades ?? [], reviewUi: reviewUi, reviewCode: reviewCode, similares: similares ?? [] }),
             })
               .then(r => r.json())
               .then(d => { setSpec(d.spec ?? d.error ?? 'Erro'); setSpecOpen(true) })
