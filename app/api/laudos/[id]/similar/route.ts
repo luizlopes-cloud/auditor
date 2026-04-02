@@ -30,11 +30,16 @@ export async function POST(
 
     const { data: current } = await supabase
       .from('laudos')
-      .select('id, resumo, artifacts(id, name, type, description)')
+      .select('*, artifacts(id, name, type, description)')
       .eq('id', id)
       .maybeSingle()
 
     if (!current) return NextResponse.json({ similares: [] })
+
+    // Retorna cache se existir
+    if ((current as any).similares) {
+      return NextResponse.json({ similares: (current as any).similares })
+    }
 
     const currentArtifact = Array.isArray(current.artifacts) ? current.artifacts[0] : current.artifacts
 
@@ -94,7 +99,9 @@ Responda em português brasileiro.`
       temperature: 0,
     })
 
-    return NextResponse.json(result.experimental_output ?? { similares: [] })
+    const similares = (result.experimental_output as any)?.similares ?? []
+    await supabase.from('laudos').update({ similares } as any).eq('id', id)
+    return NextResponse.json({ similares })
   } catch (err) {
     console.error('[similar] error:', err)
     return NextResponse.json({ similares: [] })

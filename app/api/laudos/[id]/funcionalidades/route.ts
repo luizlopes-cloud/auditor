@@ -52,6 +52,11 @@ export async function POST(
 
     if (!laudo) return NextResponse.json({ error: 'Laudo não encontrado' }, { status: 404 })
 
+    // Retorna cache se existir
+    if ((laudo as any).funcionalidades) {
+      return NextResponse.json({ funcionalidades: (laudo as any).funcionalidades })
+    }
+
     const artifact = Array.isArray(laudo.artifacts) ? laudo.artifacts[0] : laudo.artifacts
     if (!artifact) return NextResponse.json({ error: 'Artefato não encontrado' }, { status: 404 })
 
@@ -87,6 +92,9 @@ export async function POST(
     } catch {
       return NextResponse.json({ error: 'Erro ao parsear funcionalidades' }, { status: 500 })
     }
+
+    // Salva no banco
+    await supabase.from('laudos').update({ funcionalidades } as any).eq('id', id)
 
     return NextResponse.json({ funcionalidades })
   } catch (err) {

@@ -103,6 +103,10 @@ export default function LaudoDetailPage() {
           setNotaAprovacao((data.laudo as any).nota_aprovacao ?? '')
           const art = Array.isArray(data.laudo.artifacts) ? data.laudo.artifacts[0] : data.laudo.artifacts
           setEquipeValue((art as any)?.equipe ?? '')
+          // Carrega caches salvos no banco
+          if ((data.laudo as any).review_ui) setReviewUi((data.laudo as any).review_ui)
+          if ((data.laudo as any).review_code) setReviewCode((data.laudo as any).review_code)
+          if ((data.laudo as any).spec) setSpec((data.laudo as any).spec)
         }
       })
       .catch(() => setError('Erro ao carregar laudo'))

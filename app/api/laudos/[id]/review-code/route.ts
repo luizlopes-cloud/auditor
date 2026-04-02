@@ -55,6 +55,10 @@ export async function POST(
 
     if (!laudo) return NextResponse.json({ error: 'Laudo não encontrado' }, { status: 404 })
 
+    if ((laudo as any).review_code) {
+      return NextResponse.json({ review: (laudo as any).review_code })
+    }
+
     const artifact = Array.isArray(laudo.artifacts) ? laudo.artifacts[0] : laudo.artifacts
     if (!artifact) return NextResponse.json({ error: 'Artefato não encontrado' }, { status: 404 })
 
@@ -87,6 +91,7 @@ export async function POST(
       return NextResponse.json({ error: 'Erro ao parsear revisão de código' }, { status: 500 })
     }
 
+    await supabase.from('laudos').update({ review_code: review } as any).eq('id', id)
     return NextResponse.json({ review })
   } catch (err) {
     console.error('[review-code] error:', err)
