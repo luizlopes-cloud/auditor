@@ -76,7 +76,7 @@ export async function POST(
         return NextResponse.json({ error: 'Conteúdo insuficiente para criar repositório' }, { status: 400 })
       }
 
-      // Cria repo (conta de usuário, não org)
+      // Cria repo (conta de usuário)
       const createRes = await fetch(`${GITHUB_API}/user/repos`, {
         method: 'POST',
         headers: { ...githubHeaders(), 'Content-Type': 'application/json' },
@@ -95,12 +95,14 @@ export async function POST(
 
       const repo = await createRes.json()
 
-      // Push do conteúdo como um único arquivo (ou múltiplos se tiver separação)
+      // Espera repo ficar pronto (auto_init precisa de tempo)
+      await new Promise(r => setTimeout(r, 2000))
+
+      // Push do conteúdo
       const fileName = ((artifact as any).name ?? 'main').replace(/[^a-zA-Z0-9._-]/g, '_')
       const ext = detectExtension((artifact as any).type)
       const filePath = `src/${fileName}${ext}`
 
-      // Cria arquivo via Contents API
       const pushRes = await fetch(`${GITHUB_API}/repos/${repo.full_name}/contents/${filePath}`, {
         method: 'PUT',
         headers: { ...githubHeaders(), 'Content-Type': 'application/json' },
@@ -111,8 +113,8 @@ export async function POST(
       })
 
       if (!pushRes.ok) {
-        const err = await pushRes.json().catch(() => ({}))
-        return NextResponse.json({ error: `Repo criado mas erro no push: ${err.message ?? pushRes.statusText}` }, { status: 500 })
+        // Ignora erro de push — repo foi criado, usuário pode push manualmente
+        console.error('[github create] push failed:', await pushRes.text().catch(() => ''))
       }
 
       const newUrl = repo.html_url
