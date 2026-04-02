@@ -18,6 +18,58 @@ function normalizeUrl(u: string): string {
 
 type Mode = 'url' | 'code' | 'file'
 
+function GithubActions({ artifactId, onResubmit }: { artifactId?: string; onResubmit: () => void }) {
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState<any>(null)
+
+  const run = async (action: string) => {
+    if (!artifactId) return
+    setLoading(true)
+    setResult(null)
+    try {
+      const res = await fetch(`/api/artifacts/${artifactId}/github`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      setResult(await res.json())
+    } catch { setResult({ error: 'Erro de conexão' }) }
+    finally { setLoading(false) }
+  }
+
+  return (
+    <div className="bg-amber-950/30 border border-amber-700/40 rounded-2xl p-5 text-left space-y-3">
+      <div className="flex items-center gap-2">
+        <GitBranch className="h-4 w-4 text-amber-400" />
+        <p className="text-sm font-semibold text-amber-300">Este projeto não está no GitHub</p>
+      </div>
+      <p className="text-xs text-amber-300/70">Conecte ao GitHub para homologação completa:</p>
+      <div className="flex flex-wrap gap-2">
+        <button onClick={() => run('lovable_link')} disabled={loading}
+          className="px-3 py-2 bg-amber-700/60 text-amber-100 text-xs font-medium rounded-lg hover:bg-amber-600/60 disabled:opacity-50 transition-colors">
+          Como conectar no Lovable
+        </button>
+        <button onClick={() => run('create')} disabled={loading}
+          className="px-3 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+          {loading ? 'Criando...' : 'Criar repositório na org'}
+        </button>
+        <button onClick={onResubmit}
+          className="px-3 py-2 border border-amber-700/40 text-amber-300 text-xs font-medium rounded-lg hover:bg-amber-950/40 transition-colors">
+          Re-submeter com GitHub
+        </button>
+      </div>
+      {result && (
+        <div className={`text-xs p-3 rounded-lg ${result.error ? 'bg-red-950/40 text-red-300' : 'bg-emerald-950/40 text-emerald-300'}`}>
+          {result.error ?? result.message}
+          {result.new_url && <a href={result.new_url} target="_blank" rel="noopener noreferrer" className="block mt-1 text-primary underline">{result.new_url}</a>}
+          {result.steps && (
+            <ol className="mt-2 space-y-1 list-decimal list-inside">{result.steps.map((s: string, i: number) => <li key={i}>{s}</li>)}</ol>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function SubmitPage() {
   const router = useRouter()
   const [mode, setMode] = useState<Mode>('url')
@@ -31,7 +83,7 @@ export default function SubmitPage() {
   const [loading, setLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<{ laudo_id: string; resultado: string; score: number; sem_github?: boolean; org_externa?: boolean; replaced?: boolean; content_changed?: boolean; version?: number } | null>(null)
+  const [result, setResult] = useState<{ laudo_id: string; artifact_id?: string; resultado: string; score: number; sem_github?: boolean; org_externa?: boolean; replaced?: boolean; content_changed?: boolean; version?: number } | null>(null)
 
   const detectHint = (u: string) => {
     if (!u) return null
@@ -165,25 +217,7 @@ export default function SubmitPage() {
                 </div>
               )}
               {result.sem_github && (
-                <div className="bg-amber-950/30 border border-amber-700/40 rounded-2xl p-5 text-left space-y-3">
-                  <div className="flex items-center gap-2">
-                    <GitBranch className="h-4 w-4 text-amber-400" />
-                    <p className="text-sm font-semibold text-amber-300">Este projeto não está no GitHub</p>
-                  </div>
-                  <p className="text-xs text-amber-300/80">Para uma homologação completa, publique o código-fonte no GitHub:</p>
-                  <ol className="text-xs text-amber-300/70 space-y-1.5 pl-1">
-                    <li><span className="text-amber-300 font-medium">1.</span> No Lovable, vá em <span className="font-mono bg-amber-900/40 px-1 rounded">Settings</span> → conecte sua conta GitHub</li>
-                    <li><span className="text-amber-300 font-medium">2.</span> Clique em <span className="font-mono bg-amber-900/40 px-1 rounded">Publish to GitHub</span></li>
-                    <li><span className="text-amber-300 font-medium">3.</span> Volte aqui e re-submeta com o link do repositório</li>
-                  </ol>
-                  <button
-                    onClick={() => { setResult(null) }}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-600 text-white text-sm font-medium rounded-xl hover:bg-amber-500 transition-colors"
-                  >
-                    <GitBranch className="h-4 w-4" />
-                    Re-submeter com GitHub
-                  </button>
-                </div>
+                <GithubActions artifactId={result.artifact_id} onResubmit={() => setResult(null)} />
               )}
               <div className="flex flex-col gap-3">
                 <button
