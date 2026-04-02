@@ -81,8 +81,66 @@ export async function fetchUrlContent(url: string): Promise<FetchedUrl> {
   throw new Error(`Use lib/github.ts para URLs do GitHub`)
 }
 
+function extractBundleInsights(js: string): string {
+  const insights: string[] = []
+
+  // Rotas / paths (React Router, Next.js, etc.)
+  const routes = new Set<string>()
+  const routeRegex = /["'](\/[a-z][a-z0-9/_-]{1,60})["']/gi
+  let rm
+  while ((rm = routeRegex.exec(js)) !== null) {
+    const r = rm[1]
+    if (!r.includes('.') && !r.startsWith('/api/') && !r.startsWith('/_')) routes.add(r)
+  }
+  if (routes.size) insights.push(`**Rotas/páginas detectadas:** ${[...routes].join(', ')}`)
+
+  // Strings de UI (botões, labels, placeholders — português e inglês)
+  const uiStrings = new Set<string>()
+  const strRegex = /["']([A-ZÀ-Ú][a-záàâãéêíóôõúüç ]{3,50}(?:\.{3})?|[A-Z][a-z]+ [a-z]+ [a-z]+[^"']{0,30})["']/g
+  let sm
+  while ((sm = strRegex.exec(js)) !== null) {
+    const s = sm[1].trim()
+    if (s.length > 4 && s.length < 60 && !/^(http|ftp|data:|blob:)/i.test(s)) uiStrings.add(s)
+  }
+  if (uiStrings.size) {
+    const sorted = [...uiStrings].slice(0, 60)
+    insights.push(`**Textos de UI encontrados (${sorted.length}):** ${sorted.join(' | ')}`)
+  }
+
+  // Endpoints de API
+  const apis = new Set<string>()
+  const apiRegex = /["'](\/api\/[a-z][a-z0-9/_-]{1,80})["']/gi
+  let am
+  while ((am = apiRegex.exec(js)) !== null) apis.add(am[1])
+  // URLs de fetch externas
+  const fetchRegex = /fetch\(["'](https?:\/\/[^"']+)["']/gi
+  while ((am = fetchRegex.exec(js)) !== null) apis.add(am[1])
+  if (apis.size) insights.push(`**Endpoints de API:** ${[...apis].join(', ')}`)
+
+  // Tabelas/colunas Supabase
+  const tables = new Set<string>()
+  const tableRegex = /\.from\(["']([a-z_]+)["']\)/gi
+  while ((am = tableRegex.exec(js)) !== null) tables.add(am[1])
+  if (tables.size) insights.push(`**Tabelas Supabase:** ${[...tables].join(', ')}`)
+
+  // Componentes (JSX function/const names)
+  const components = new Set<string>()
+  const compRegex = /(?:function|const)\s+([A-Z][A-Za-z]{2,30})\s*[\(=]/g
+  while ((am = compRegex.exec(js)) !== null) components.add(am[1])
+  if (components.size > 2) {
+    insights.push(`**Componentes detectados (${components.size}):** ${[...components].slice(0, 40).join(', ')}`)
+  }
+
+  // Hooks de estado (useState com nome)
+  const stateVars = new Set<string>()
+  const stateRegex = /\[(\w+),\s*set[A-Z]\w+\]\s*=\s*useState/g
+  while ((am = stateRegex.exec(js)) !== null) stateVars.add(am[1])
+  if (stateVars.size) insights.push(`**Estados de UI (useState):** ${[...stateVars].slice(0, 30).join(', ')}`)
+
+  return insights.join('\n')
+}
+
 async function fetchExternalScripts(baseUrl: string, html: string): Promise<string[]> {
-  // Encontra src de scripts externos (bundles Vite/React)
   const srcRegex = /<script[^>]+src=["']([^"']+)["'][^>]*>/gi
   const srcs: string[] = []
   let m
@@ -94,7 +152,7 @@ async function fetchExternalScripts(baseUrl: string, html: string): Promise<stri
   const results: string[] = []
   const base = new URL(baseUrl)
 
-  await Promise.all(srcs.slice(0, 3).map(async src => {
+  await Promise.all(srcs.slice(0, 5).map(async src => {
     try {
       const fullUrl = src.startsWith('http') ? src : new URL(src, base).toString()
       const res = await fetch(fullUrl, {
@@ -103,9 +161,14 @@ async function fetchExternalScripts(baseUrl: string, html: string): Promise<stri
       })
       if (!res.ok) return
       const text = await res.text()
-      // Pega início e fim do bundle (onde costumam estar configurações, rotas, strings visíveis)
-      const excerpt = text.slice(0, 8000) + (text.length > 8000 ? '\n...[truncado]...\n' + text.slice(-2000) : '')
-      results.push(`// Bundle: ${src}\n${excerpt}`)
+
+      // Extrai insights estruturados do bundle
+      const insights = extractBundleInsights(text)
+      if (insights) results.push(`// Bundle: ${src}\n${insights}`)
+
+      // Também inclui um trecho do código para contexto
+      const excerpt = text.slice(0, 6000) + (text.length > 6000 ? '\n...[truncado]...\n' + text.slice(-2000) : '')
+      results.push(`// Código fonte: ${src}\n${excerpt}`)
     } catch {}
   }))
 
