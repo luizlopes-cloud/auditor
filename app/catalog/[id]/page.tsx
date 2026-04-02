@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft, ExternalLink, CheckCircle2, Clock, FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, Globe, User, Calendar } from 'lucide-react'
+import { ArrowLeft, ExternalLink, CheckCircle2, Clock, FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, Globe, User, Calendar, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const typeIcon: Record<string, React.ElementType> = {
@@ -182,6 +182,23 @@ export default function CatalogDetailPage() {
                   <ExternalLink className="h-4 w-4" />
                   Ver no GitHub
                 </a>
+              )}
+              {laudo.spec ? (
+                <Link
+                  href={`/laudos/${id}`}
+                  className="flex items-center gap-2 px-5 py-2.5 border border-emerald-700/40 text-emerald-400 text-sm font-semibold rounded-xl hover:bg-emerald-950/30 transition-colors"
+                >
+                  <FileText className="h-4 w-4" />
+                  Ver Spec
+                </Link>
+              ) : (
+                <Link
+                  href={`/laudos/${id}`}
+                  className="flex items-center gap-2 px-5 py-2.5 border border-border text-muted-foreground/60 text-sm font-semibold rounded-xl hover:bg-accent transition-colors"
+                >
+                  <FileText className="h-4 w-4" />
+                  Gerar Spec
+                </Link>
               )}
             </div>
           )}
