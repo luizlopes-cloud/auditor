@@ -130,6 +130,26 @@ function GithubActions({ artifactId, laudoId, isLovable, lovableProjectId, onLin
           )}
         </div>
       )}
+
+      {/* Guia visual — como pegar o link correto do Lovable */}
+      {isLovable && (
+        <div className="border-t border-amber-700/30 pt-3 space-y-2">
+          <p className="text-xs font-medium text-amber-300/70">Ou envie o link de preview para uma analise parcial:</p>
+          <div className="space-y-2 text-xs text-amber-300/60">
+            <p><span className="text-amber-300 font-medium">1.</span> No editor, clique em <span className="font-medium text-amber-300">Share</span> na barra superior:</p>
+          </div>
+          <div className="rounded-md overflow-hidden border border-amber-700/30">
+            <img src="/guide-lovable-toolbar.jpg" alt="Barra do Lovable" className="w-full h-auto" />
+          </div>
+          <div className="text-xs text-amber-300/60">
+            <p><span className="text-amber-300 font-medium">2.</span> Clique em <span className="font-medium text-amber-300">Share preview</span> e copie o link:</p>
+          </div>
+          <div className="rounded-md overflow-hidden border border-amber-700/30">
+            <img src="/guide-lovable-share.jpg" alt="Painel Share do Lovable" className="w-full h-auto" />
+          </div>
+          <p className="text-xs text-amber-300/60"><span className="text-amber-300 font-medium">3.</span> Cole o link aqui e re-submeta para analise com o codigo real.</p>
+        </div>
+      )}
     </div>
   )
 }
