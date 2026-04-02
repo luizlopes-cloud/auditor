@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ScoreBadge } from '@/components/ScoreBadge'
 import { CheckItem } from '@/components/CheckItem'
-import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, Globe, ArrowLeft, ExternalLink, Trash2, Merge, RotateCcw, Link2, CheckCircle2, XCircle, MessageSquare, Send, Pencil, ChevronDown, ChevronRight } from 'lucide-react'
+import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, Globe, ArrowLeft, ExternalLink, Trash2, Merge, RotateCcw, Link2, CheckCircle2, XCircle, MessageSquare, Send, Pencil, ChevronDown, ChevronRight, Monitor, Code2, FileText, ClipboardCheck, Square, SquareCheck } from 'lucide-react'
 import Link from 'next/link'
 
 type Check = {
@@ -63,6 +63,27 @@ export default function LaudoDetailPage() {
   const [funcionalidades, setFuncionalidades] = useState<any[] | null>(null)
   const [loadingFunc, setLoadingFunc] = useState(true)
   const [funcOpen, setFuncOpen] = useState(false)
+
+  // Review UI
+  const [reviewUi, setReviewUi] = useState<any | null>(null)
+  const [loadingUi, setLoadingUi] = useState(false)
+  const [uiOpen, setUiOpen] = useState(false)
+
+  // Review Code
+  const [reviewCode, setReviewCode] = useState<any | null>(null)
+  const [loadingCode, setLoadingCode] = useState(false)
+  const [codeOpen, setCodeOpen] = useState(false)
+
+  // Spec
+  const [spec, setSpec] = useState<any | null>(null)
+  const [loadingSpec, setLoadingSpec] = useState(false)
+  const [specOpen, setSpecOpen] = useState(false)
+
+  // Checklist de acessos
+  const [acessos, setAcessos] = useState<Record<string, boolean>>({
+    github: false, supabase: false, vercel: false, dominio: false, staging: false,
+  })
+  const [acessosOpen, setAcessosOpen] = useState(false)
 
   // Comments
   const [comentarios, setComentarios] = useState<Comentario[]>([])
@@ -564,6 +585,213 @@ export default function LaudoDetailPage() {
           </div>
         )}
       </div>
+
+      {/* ── Ferramentas de homologação ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+        {/* Revisar UI */}
+        <button
+          onClick={() => {
+            if (reviewUi) { setUiOpen(v => !v); return }
+            setLoadingUi(true)
+            fetch(`/api/laudos/${id}/review-ui`, { method: 'POST' })
+              .then(r => r.json())
+              .then(d => { setReviewUi(d.review ?? d.error ?? 'Erro'); setUiOpen(true) })
+              .catch(() => setReviewUi('Erro ao revisar UI'))
+              .finally(() => setLoadingUi(false))
+          }}
+          disabled={loadingUi}
+          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left disabled:opacity-60"
+        >
+          <div className="h-9 w-9 rounded-lg bg-violet-900/40 flex items-center justify-center shrink-0">
+            <Monitor className="h-4 w-4 text-violet-400" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">Revisar UI</p>
+            <p className="text-xs text-muted-foreground">{loadingUi ? 'Analisando...' : reviewUi ? 'Ver resultado' : 'Interface e UX'}</p>
+          </div>
+        </button>
+
+        {/* Revisar Código */}
+        <button
+          onClick={() => {
+            if (reviewCode) { setCodeOpen(v => !v); return }
+            setLoadingCode(true)
+            fetch(`/api/laudos/${id}/review-code`, { method: 'POST' })
+              .then(r => r.json())
+              .then(d => { setReviewCode(d.review ?? d.error ?? 'Erro'); setCodeOpen(true) })
+              .catch(() => setReviewCode('Erro ao revisar código'))
+              .finally(() => setLoadingCode(false))
+          }}
+          disabled={loadingCode}
+          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left disabled:opacity-60"
+        >
+          <div className="h-9 w-9 rounded-lg bg-cyan-900/40 flex items-center justify-center shrink-0">
+            <Code2 className="h-4 w-4 text-cyan-400" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">Revisar Código</p>
+            <p className="text-xs text-muted-foreground">{loadingCode ? 'Analisando...' : reviewCode ? 'Ver resultado' : 'Qualidade e segurança'}</p>
+          </div>
+        </button>
+
+        {/* Gerar Spec */}
+        <button
+          onClick={() => {
+            if (spec) { setSpecOpen(v => !v); return }
+            setLoadingSpec(true)
+            fetch(`/api/laudos/${id}/spec`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ funcionalidades: funcionalidades ?? [] }),
+            })
+              .then(r => r.json())
+              .then(d => { setSpec(d.spec ?? d.error ?? 'Erro'); setSpecOpen(true) })
+              .catch(() => setSpec('Erro ao gerar spec'))
+              .finally(() => setLoadingSpec(false))
+          }}
+          disabled={loadingSpec}
+          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left disabled:opacity-60"
+        >
+          <div className="h-9 w-9 rounded-lg bg-emerald-900/40 flex items-center justify-center shrink-0">
+            <FileText className="h-4 w-4 text-emerald-400" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">Gerar Spec</p>
+            <p className="text-xs text-muted-foreground">{loadingSpec ? 'Gerando...' : spec ? 'Ver resultado' : 'Documentação básica'}</p>
+          </div>
+        </button>
+
+        {/* Checklist de Acessos */}
+        <button
+          onClick={() => setAcessosOpen(v => !v)}
+          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left"
+        >
+          <div className="h-9 w-9 rounded-lg bg-amber-900/40 flex items-center justify-center shrink-0">
+            <ClipboardCheck className="h-4 w-4 text-amber-400" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">Checklist de Acessos</p>
+            <p className="text-xs text-muted-foreground">{Object.values(acessos).filter(Boolean).length}/{Object.keys(acessos).length} verificados</p>
+          </div>
+        </button>
+      </div>
+
+      {/* Painel: Review UI */}
+      {uiOpen && reviewUi && typeof reviewUi === 'object' && (
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Monitor className="h-4 w-4 text-violet-400" /> Revisão de UI — Score {reviewUi.score_ui}/100</h2>
+            <button onClick={() => setUiOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+          </div>
+          <p className="text-sm text-muted-foreground">{reviewUi.resumo}</p>
+          {reviewUi.categorias?.map((cat: any, ci: number) => (
+            <div key={ci} className="space-y-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{cat.nome} {cat.score != null && `— ${cat.score}/100`}</h3>
+              {cat.itens?.map((item: any, ii: number) => (
+                <div key={ii} className={`rounded-lg border p-3 text-xs space-y-1 ${item.status === 'ok' ? 'border-emerald-800/40 bg-emerald-950/20' : item.status === 'erro' ? 'border-red-800/40 bg-red-950/20' : 'border-amber-800/40 bg-amber-950/20'}`}>
+                  <p className="font-medium text-foreground">{item.item}</p>
+                  <p className="text-muted-foreground">{item.detalhe}</p>
+                  {item.sugestao && <p className="text-primary">{item.sugestao}</p>}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Painel: Review Code */}
+      {codeOpen && reviewCode && typeof reviewCode === 'object' && (
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Code2 className="h-4 w-4 text-cyan-400" /> Revisão de Código — Score {reviewCode.score_code}/100</h2>
+            <button onClick={() => setCodeOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+          </div>
+          <p className="text-sm text-muted-foreground">{reviewCode.resumo}</p>
+          {reviewCode.categorias?.map((cat: any, ci: number) => (
+            <div key={ci} className="space-y-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{cat.nome}</h3>
+              {cat.itens?.map((item: any, ii: number) => (
+                <div key={ii} className={`rounded-lg border p-3 text-xs space-y-1 ${item.status === 'ok' ? 'border-emerald-800/40 bg-emerald-950/20' : item.status === 'erro' ? 'border-red-800/40 bg-red-950/20' : 'border-amber-800/40 bg-amber-950/20'}`}>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-foreground">{item.item}</p>
+                    {item.arquivo && <span className="font-mono text-muted-foreground/50">{item.arquivo}</span>}
+                  </div>
+                  <p className="text-muted-foreground">{item.detalhe}</p>
+                  {item.sugestao && <p className="text-primary">{item.sugestao}</p>}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Painel: Spec */}
+      {specOpen && spec && typeof spec === 'object' && (
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><FileText className="h-4 w-4 text-emerald-400" /> Spec — {spec.nome}</h2>
+            <button onClick={() => setSpecOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+          </div>
+          <p className="text-sm text-muted-foreground">{spec.descricao}</p>
+          {spec.publico_alvo && <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Público:</span> {spec.publico_alvo}</p>}
+          {spec.stack?.length > 0 && <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Stack:</span> {spec.stack.join(', ')}</p>}
+          {spec.funcionalidades?.length > 0 && (
+            <div className="space-y-1">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Funcionalidades</h3>
+              {spec.funcionalidades.map((f: any, i: number) => (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${f.prioridade === 'essencial' ? 'bg-red-900/40 text-red-300' : f.prioridade === 'importante' ? 'bg-amber-900/40 text-amber-300' : 'bg-blue-900/40 text-blue-300'}`}>{f.prioridade}</span>
+                  <span className="font-medium text-foreground">{f.nome}</span>
+                  <span className="text-muted-foreground">{f.descricao}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {spec.integrações?.length > 0 && <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Integrações:</span> {spec.integrações.join(', ')}</p>}
+          {spec.riscos?.length > 0 && (
+            <div className="space-y-1">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Riscos</h3>
+              {spec.riscos.map((r: string, i: number) => <p key={i} className="text-xs text-amber-400">• {r}</p>)}
+            </div>
+          )}
+          {spec.proximos_passos?.length > 0 && (
+            <div className="space-y-1">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Próximos passos</h3>
+              {spec.proximos_passos.map((p: string, i: number) => <p key={i} className="text-xs text-muted-foreground">• {p}</p>)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Painel: Checklist de Acessos */}
+      {acessosOpen && (
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><ClipboardCheck className="h-4 w-4 text-amber-400" /> Checklist de Acessos</h2>
+            <button onClick={() => setAcessosOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+          </div>
+          {[
+            { key: 'github', label: 'GitHub — repositório acessível' },
+            { key: 'supabase', label: 'Supabase — acesso ao projeto/banco' },
+            { key: 'vercel', label: 'Vercel — acesso ao deploy' },
+            { key: 'dominio', label: 'Domínio — DNS configurado (seazone.dev)' },
+            { key: 'staging', label: 'Staging — ambiente de testes disponível' },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setAcessos(prev => ({ ...prev, [key]: !prev[key] }))}
+              className="w-full flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:bg-accent/30 transition-colors text-left"
+            >
+              {acessos[key] ? (
+                <SquareCheck className="h-4 w-4 text-emerald-400 shrink-0" />
+              ) : (
+                <Square className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+              )}
+              <span className={`text-sm ${acessos[key] ? 'text-foreground' : 'text-muted-foreground'}`}>{label}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Checks por categoria */}
       <div className="space-y-6 mb-8">
