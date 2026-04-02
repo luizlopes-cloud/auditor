@@ -87,10 +87,19 @@ NÃO crie checks genéricos como "Página está acessível" ou "Meta tags presen
 - Responsividade (mobile/desktop)?
 - Performance (lazy loading, paginação em listas grandes)?
 
-## Resultado
-- **aprovado**: Pronto para produção, no máximo avisos menores (score 70+)
-- **ajustes_necessarios**: Problemas que precisam ser corrigidos antes de ir para produção (score 40-69)
-- **reprovado**: Problemas críticos de segurança, dados ou lógica (score abaixo de 40)
+## Como calcular o score (OBRIGATÓRIO seguir esta fórmula)
+
+1. Comece com 100 pontos
+2. Para cada check com status "erro": subtraia 8-15 pontos (crítico=15, moderado=10, leve=8)
+3. Para cada check com status "aviso": subtraia 2-5 pontos (importante=5, menor=2)
+4. Checks com "ok" não subtraem nada
+5. NUNCA dê score entre 60 e 70 sem justificar — essa faixa é proibida como "padrão seguro"
+6. Score final = 100 - total de deduções
+
+## Resultado (baseado no score calculado)
+- **aprovado**: Score 75+ (no máximo avisos menores, zero erros críticos)
+- **ajustes_necessarios**: Score 40-74 (problemas que precisam ser corrigidos)
+- **reprovado**: Score abaixo de 40 (problemas críticos de segurança, dados ou lógica)
 
 ## Regras obrigatórias
 - Gere entre 8 e 20 checks distribuídos pelas categorias acima
@@ -100,16 +109,21 @@ NÃO crie checks genéricos como "Página está acessível" ou "Meta tags presen
 - Para status "aviso" ou "erro": SEMPRE forneça o campo "sugestao" com correção concreta
 - Se o artefato é uma aplicação web, detalhe quais telas/rotas existem, quais filtros estão disponíveis, quais ações o usuário pode tomar
 
-## Exemplos de calibração
+## Exemplos de calibração (siga a fórmula de dedução acima)
 
-Score 92 — aprovado:
-{ resultado: "aprovado", score: 92, resumo: "Script bem estruturado, variáveis de ambiente corretas, tratamento de erros presente. Apenas documentação inline poderia ser melhorada.", checks: [{ categoria: "Segurança", item: "Credenciais", status: "ok", detalhe: "Todas as chaves usam variáveis de ambiente (process.env)" }, { categoria: "Robustez", item: "Error handling", status: "ok", detalhe: "try/catch em todas as chamadas externas" }, { categoria: "Manutenibilidade", item: "Documentação", status: "aviso", detalhe: "Funções sem comentários explicativos (linha 15, 32, 47)", sugestao: "Adicionar JSDoc nas funções principais" }] }
+Score 95 — aprovado (100 - 5 de 1 aviso):
+Código limpo, seguro, testado. Apenas 1 aviso menor de documentação.
 
-Score 58 — ajustes_necessarios:
-{ resultado: "ajustes_necessarios", score: 58, resumo: "Script funcional mas sem tratamento de erros nas chamadas à API e com URL de staging hardcoded que vai causar problema em produção.", checks: [{ categoria: "Segurança", item: "URLs de ambiente", status: "erro", detalhe: "URL 'https://staging.api.seazone.com.br' hardcoded na linha 8", sugestao: "Usar variável de ambiente API_URL e configurar separado por ambiente" }, { categoria: "Robustez", item: "Error handling", status: "erro", detalhe: "Chamada fetch() na linha 23 sem try/catch — vai quebrar silenciosamente se a API falhar", sugestao: "Envolver em try/catch e logar o erro" }] }
+Score 82 — aprovado (100 - 18 de 2 avisos + 1 erro leve):
+Funcional e seguro mas com 1 erro leve de tratamento de erros e avisos de naming.
 
-Score 35 — reprovado:
-{ resultado: "reprovado", score: 35, resumo: "Script com token de API exposto no código-fonte. Qualquer pessoa com acesso ao repo pode usar o token para acessar dados da empresa.", checks: [{ categoria: "Segurança", item: "Token exposto", status: "erro", detalhe: "Token Pipedrive 'api_token=abc123xyz' hardcoded na linha 4", sugestao: "Mover para variável de ambiente PIPEDRIVE_TOKEN e revogar o token atual imediatamente" }] }`
+Score 48 — ajustes_necessarios (100 - 52 de 4 erros):
+4 problemas reais: sem tratamento de erros, URL hardcoded, sem validação de input, código morto.
+
+Score 28 — reprovado (100 - 72 de 5 erros críticos):
+Token exposto, SQL injection, sem auth, dados de teste em produção, dependência vulnerável.
+
+IMPORTANTE: Os scores devem variar de acordo com os problemas REAIS encontrados. NÃO existe score "padrão". Se encontrou 0 erros e 3 avisos, o score é ~88. Se encontrou 3 erros moderados, é ~70. Calcule SEMPRE pela fórmula.`
 
 async function runAnalysis(context: string, model: string): Promise<LaudoResult> {
   const result = await generateText({
