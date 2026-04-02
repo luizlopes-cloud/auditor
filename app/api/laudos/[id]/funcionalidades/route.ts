@@ -1,16 +1,13 @@
+import { llm, LLM_MODEL } from '@/lib/llm'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateText } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
 import { fetchRepoContent } from '@/lib/github'
 import { fetchUrlContent } from '@/lib/url-fetcher'
 import { buildAnalysisContext } from '@/lib/parser'
 import { extractProjectRef, fetchSupabaseSchema, formatSchemaForLLM } from '@/lib/supabase-schema'
 
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
+export const maxDuration = 300
 
 const PROMPT = `Você é um analista de produto sênior. Seu trabalho é mapear TODAS as funcionalidades de uma aplicação/artefato.
 
@@ -91,7 +88,7 @@ export async function POST(
     }
 
     const result = await generateText({
-      model: openrouter('google/gemini-2.0-flash-001'),
+      model: llm(LLM_MODEL),
       prompt: `${PROMPT}\n\nAnalise este artefato e mapeie todas as funcionalidades:\n\n${context}`,
       temperature: 0,
     })

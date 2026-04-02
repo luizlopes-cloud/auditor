@@ -1,12 +1,9 @@
+import { llm, LLM_MODEL } from '@/lib/llm'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateText } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
 
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
+export const maxDuration = 300
 
 const PROMPT = `Você é um analista de produto. Gere uma documentação Spec básica deste artefato baseado nas funcionalidades mapeadas e na análise.
 
@@ -101,7 +98,7 @@ ${codeResumo}
 ${similaresResumo}`
 
     const result = await generateText({
-      model: openrouter('google/gemini-2.0-flash-001'),
+      model: llm(LLM_MODEL),
       prompt: `${PROMPT}\n\n${context}`,
       temperature: 0,
     })

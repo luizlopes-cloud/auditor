@@ -5,6 +5,8 @@ import { buildAnalysisContext, detectArtifactType, parseFileContent } from '@/li
 import { fetchRepoContent, parseGitHubUrl } from '@/lib/github'
 import { detectUrlType, fetchUrlContent, detectEditorUrl } from '@/lib/url-fetcher'
 
+export const maxDuration = 300
+
 function extractLovableName(url: string): string | null {
   const m = url.match(/(?:preview--)?([a-z0-9][a-z0-9-]+)\.lovable\.app/)
   if (!m || m[1] === 'preview') return null

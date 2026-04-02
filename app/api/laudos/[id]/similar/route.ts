@@ -1,13 +1,10 @@
+import { llm, LLM_MODEL } from '@/lib/llm'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateText, Output } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
+
 import { z } from 'zod'
 
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
 
 const SimilarSchema = z.object({
   similares: z.array(z.object({
@@ -93,7 +90,7 @@ Se não houver sobreposição real, retorne lista vazia.
 Responda em português brasileiro.`
 
     const result = await generateText({
-      model: openrouter('google/gemini-2.0-flash-001'),
+      model: llm(LLM_MODEL),
       experimental_output: Output.object({ schema: SimilarSchema }),
       prompt,
       temperature: 0,

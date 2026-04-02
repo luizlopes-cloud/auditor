@@ -516,7 +516,7 @@ export default function LaudoDetailPage() {
       {artifact?.github_url && (() => {
         const match = artifact.github_url.match(/github\.com\/([^/]+)\//)
         const owner = match?.[1]?.toLowerCase()
-        const isOrgOk = ['seazone-socios', 'businessoperations-seazone', 'seazone'].includes(owner ?? '')
+        const isOrgOk = ['seazone-socios', 'businessoperations-seazone', 'seazone', 'seazone-tech', 'luizlopes-cloud'].includes(owner ?? '')
         if (isOrgOk) return null
         return (
           <div className="bg-amber-950/20 border border-amber-700/40 rounded-xl p-5 mb-6 space-y-3">

@@ -1,14 +1,11 @@
+import { llm, LLM_MODEL } from '@/lib/llm'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateText } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
 import { fetchRepoContent } from '@/lib/github'
 import { buildAnalysisContext } from '@/lib/parser'
 
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
+export const maxDuration = 300
 
 const PROMPT = `Você é um code reviewer sênior. Faça uma revisão profunda do código deste artefato.
 
@@ -88,9 +85,10 @@ export async function POST(
     const context = buildAnalysisContext(artifact.name, content, artifact.description ?? '')
 
     const result = await generateText({
-      model: openrouter('google/gemini-2.0-flash-001'),
+      model: llm(LLM_MODEL),
       prompt: `${PROMPT}\n\nCódigo para revisar:\n\n${context}`,
       temperature: 0,
+      maxOutputTokens: 8192,
     })
 
     let review: any = null
@@ -98,7 +96,8 @@ export async function POST(
       const cleaned = result.text.replace(/```json?\n?/g, '').replace(/```/g, '').trim()
       review = JSON.parse(cleaned)
     } catch {
-      return NextResponse.json({ error: 'Erro ao parsear revisão de código' }, { status: 500 })
+      const preview = result.text.slice(0, 300)
+      return NextResponse.json({ error: `Erro ao parsear revisão de código. Resposta do modelo: ${preview}` }, { status: 500 })
     }
 
     // Recalcula score do review_code a partir dos checks

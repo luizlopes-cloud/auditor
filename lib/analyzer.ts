@@ -1,14 +1,9 @@
-import { generateText, Output } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
+import { generateText } from 'ai'
 import { z } from 'zod'
+import { llm, LLM_MODEL } from './llm'
 
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
-
-const MODEL_PRIMARY = process.env.OPENROUTER_MODEL ?? 'google/gemini-2.0-flash-001'
-const MODEL_FALLBACK = process.env.OPENROUTER_FALLBACK_MODEL ?? 'google/gemini-flash-1.5'
+const MODEL_PRIMARY = LLM_MODEL
+const MODEL_FALLBACK = LLM_MODEL
 
 const CheckSchema = z.object({
   categoria: z.string(),
@@ -128,24 +123,42 @@ Token exposto, SQL injection, sem auth, dados de teste em produção, dependênc
 
 IMPORTANTE: Os scores devem variar de acordo com os problemas REAIS encontrados. NÃO existe score "padrão". Se encontrou 0 erros e 3 avisos, o score é ~88. Se encontrou 3 erros moderados, é ~70. Calcule SEMPRE pela fórmula.`
 
+const JSON_INSTRUCTION = `
+Retorne APENAS um JSON válido (sem markdown) com esta estrutura:
+{
+  "resultado": "aprovado" | "ajustes_necessarios" | "reprovado",
+  "score": number (0-100),
+  "resumo": "resumo geral",
+  "checks": [
+    { "categoria": "string", "item": "string", "status": "ok" | "aviso" | "erro", "detalhe": "string", "sugestao": "string opcional" }
+  ]
+}`
+
 async function runAnalysis(context: string, model: string): Promise<LaudoResult> {
   const result = await generateText({
-    model: openrouter(model),
-    experimental_output: Output.object({ schema: LaudoSchema }),
-    prompt: `${SYSTEM_PROMPT}\n\nAnalise o seguinte artefato e gere o laudo completo:\n\n${context}`,
+    model: llm(model),
+    prompt: `${SYSTEM_PROMPT}\n\n${JSON_INSTRUCTION}\n\nAnalise o seguinte artefato e gere o laudo completo:\n\n${context}`,
     temperature: 0,
+    maxOutputTokens: 4096,
   })
-  if (!result.experimental_output) throw new Error(`Modelo ${model} não retornou output estruturado`)
+
+  const cleaned = result.text.replace(/```json?\n?/g, '').replace(/```/g, '').trim()
+  let parsed: any
+  try {
+    parsed = JSON.parse(cleaned)
+  } catch {
+    throw new Error(`Modelo ${model} não retornou JSON válido. Preview: ${result.text.slice(0, 200)}`)
+  }
+
+  const validated = LaudoSchema.parse(parsed)
 
   // Recalcula score a partir dos checks (não confia no modelo)
-  const output = result.experimental_output
-  const erros = output.checks.filter(c => c.status === 'erro').length
-  const avisos = output.checks.filter(c => c.status === 'aviso').length
-  const calculatedScore = Math.max(0, Math.min(100, 100 - (erros * 10) - (avisos * 3)))
-  output.score = calculatedScore
-  output.resultado = calculatedScore >= 75 ? 'aprovado' : calculatedScore >= 40 ? 'ajustes_necessarios' : 'reprovado'
+  const erros = validated.checks.filter(c => c.status === 'erro').length
+  const avisos = validated.checks.filter(c => c.status === 'aviso').length
+  validated.score = Math.max(0, Math.min(100, 100 - (erros * 10) - (avisos * 3)))
+  validated.resultado = validated.score >= 75 ? 'aprovado' : validated.score >= 40 ? 'ajustes_necessarios' : 'reprovado'
 
-  return output
+  return validated
 }
 
 export async function analyzeArtifact(context: string): Promise<LaudoResult & { model_used: string }> {
@@ -165,7 +178,7 @@ export async function analyzeArtifact(context: string): Promise<LaudoResult & { 
       return { ...output, model_used: MODEL_FALLBACK }
     } catch (fallbackError) {
       console.error('[analyzer] fallback também falhou:', fallbackError)
-      throw new Error('Serviço de análise indisponível. Tente novamente em alguns instantes.')
+      throw new Error(`Análise falhou. Primary: ${String(primaryError).slice(0, 200)} | Fallback: ${String(fallbackError).slice(0, 200)}`)
     }
   }
 }

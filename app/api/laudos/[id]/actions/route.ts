@@ -1,13 +1,10 @@
+import { llm, LLM_MODEL } from '@/lib/llm'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateText, Output } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
 import { z } from 'zod'
 
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
+export const maxDuration = 300
 
 const AcoesSchema = z.object({
   acoes: z.array(z.object({
@@ -58,7 +55,7 @@ Seja específico e prático. Não repita os checks já listados — foque em aç
 Responda em português brasileiro.`
 
     const result = await generateText({
-      model: openrouter(process.env.OPENROUTER_MODEL ?? 'google/gemini-flash-2.0'),
+      model: llm(LLM_MODEL),
       experimental_output: Output.object({ schema: AcoesSchema }),
       prompt,
       temperature: 0,

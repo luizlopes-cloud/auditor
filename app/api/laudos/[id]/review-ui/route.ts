@@ -1,13 +1,10 @@
+import { llm, LLM_MODEL } from '@/lib/llm'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateText } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
 import { fetchUrlContent } from '@/lib/url-fetcher'
 
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
+export const maxDuration = 300
 
 function extractUIEvidence(html: string): string {
   const evidence: string[] = []
@@ -204,7 +201,7 @@ export async function POST(
     } catch {}
 
     const result = await generateText({
-      model: openrouter('google/gemini-2.0-flash-001'),
+      model: llm(LLM_MODEL),
       prompt: `${PROMPT}\n\nURL: ${url}\n\n=== EVIDÊNCIAS EXTRAÍDAS DO HTML ===\n${evidence}\n\n=== TRECHO DO HTML ===\n${htmlSnippet}`,
       temperature: 0,
     })

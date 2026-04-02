@@ -1,12 +1,9 @@
+import { llm, LLM_MODEL } from '@/lib/llm'
 import { NextRequest, NextResponse } from 'next/server'
 import { generateText } from 'ai'
-import { createOpenAI } from '@ai-sdk/openai'
 import { createClient } from '@/lib/supabase/server'
 
-const openrouter = createOpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY ?? '',
-})
+export const maxDuration = 300
 
 export async function POST(req: NextRequest) {
   try {
@@ -67,7 +64,7 @@ Seja conciso, direto, em português brasileiro. Não use markdown excessivo — 
       .join('\n\n')
 
     const result = await generateText({
-      model: openrouter('google/gemini-2.0-flash-001'),
+      model: llm(LLM_MODEL),
       prompt: `${systemPrompt}\n\n--- Conversa ---\n${conversation}\n\nAssistente:`,
       temperature: 0.7,
       maxOutputTokens: 600,
