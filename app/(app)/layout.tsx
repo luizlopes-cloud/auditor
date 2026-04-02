@@ -1,10 +1,5 @@
 import { Sidebar } from "@/components/Sidebar";
-import dynamic from "next/dynamic";
-
-const FloatingAssistant = dynamic(
-  () => import("@/components/FloatingAssistant").then((m) => m.FloatingAssistant),
-  { ssr: false }
-);
+import { FloatingAssistant } from "@/components/FloatingAssistant";
 
 export default function AppLayout({
   children,

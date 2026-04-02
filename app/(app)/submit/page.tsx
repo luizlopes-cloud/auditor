@@ -205,7 +205,7 @@ export default function AuditarPage() {
             </div>
           )}
           <p className="text-muted-foreground text-sm">Laudo gerado com sucesso.</p>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <button
               onClick={() => router.push(`/laudos/${result.laudo_id}`)}
               className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
@@ -214,8 +214,14 @@ export default function AuditarPage() {
               <ArrowRight className="h-4 w-4" />
             </button>
             <button
+              onClick={() => router.push('/catalog')}
+              className="flex items-center gap-2 px-4 py-2 border border-border text-muted-foreground text-sm font-medium rounded-lg hover:bg-accent hover:text-foreground transition-colors"
+            >
+              Ver catálogo
+            </button>
+            <button
               onClick={() => { setResult(null); setUrl(''); setCode(''); setFileContent(''); setFileName('') }}
-              className="px-4 py-2 border border-border text-muted-foreground text-sm font-medium rounded-lg hover:bg-accent transition-colors"
+              className="px-4 py-2 text-muted-foreground/60 text-sm hover:text-muted-foreground transition-colors"
             >
               Novo artefato
             </button>
