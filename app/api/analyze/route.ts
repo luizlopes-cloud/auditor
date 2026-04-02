@@ -94,15 +94,14 @@ export async function POST(req: NextRequest) {
           analysisContext += `\n### Dependências\n\`\`\`\n${repoContent.packageJson.slice(0, 2000)}\n\`\`\``
         }
       } else if (new URL(fetchUrl).hostname === 'lovable.dev' || new URL(fetchUrl).hostname === 'www.lovable.dev') {
-        // Lovable editor URL — não dá pra fetch o conteúdo, mas temos o project_id
+        // Lovable editor URL — registra artefato e pula análise se não tem GitHub
         artifactSourceUrl = cleanUrl
         artifactSource = 'url'
         artifactName = name?.trim() || 'Projeto Lovable'
         artifactType = 'outro'
-        semGithub = !github_url?.trim()
-        artifactContent = `Projeto Lovable (ID: ${lovableProjectId ?? 'desconhecido'})\nURL do editor: ${cleanUrl}\nDescrição: ${description ?? 'Não informada'}`
 
         if (github_url?.trim()) {
+          // Tem GitHub — busca código e faz análise normal
           const parsedGh = parseGitHubUrl(github_url.trim())
           if (parsedGh && !ORGS_APROVADAS.includes(parsedGh.owner.toLowerCase())) orgExterna = true
           try {
@@ -110,12 +109,36 @@ export async function POST(req: NextRequest) {
             artifactGithubUrl = github_url.trim()
             artifactContent = repoContent.mainFiles.map((f: any) => `// ${f.path}\n${f.content}`).join('\n\n')
             if (repoContent.readme) artifactContent = `## README\n${repoContent.readme}\n\n${artifactContent}`
+            if (repoContent.packageJson) artifactContent += `\n\n// package.json\n${repoContent.packageJson}`
             artifactName = name?.trim() || parsedGh?.repo || 'Projeto Lovable'
-            semGithub = false
           } catch {}
-        }
+          analysisContext = buildAnalysisContext(artifactName, artifactContent, description ?? '', { url: cleanUrl })
+        } else {
+          // Sem GitHub — registra sem análise, retorna direto com botão de conectar
+          const supabase = await createClient()
+          const insertData: Record<string, unknown> = {
+            name: artifactName, type: artifactType, source: 'url',
+            source_url: cleanUrl, description: description ?? null,
+            submitted_by: (submitted_by || 'Anônimo').trim(), status: 'pending',
+          }
+          if (lovableProjectId) insertData.lovable_project_id = lovableProjectId
+          const { data: art, error: artErr } = await supabase.from('artifacts').insert(insertData as any).select().single()
+          if (artErr || !art) return NextResponse.json({ error: 'Erro ao registrar artefato' }, { status: 500 })
 
-        analysisContext = buildAnalysisContext(artifactName, artifactContent, description ?? '', { url: cleanUrl })
+          // Cria laudo placeholder
+          const { data: laudoData } = await supabase.from('laudos').insert({
+            artifact_id: art.id, resultado: 'ajustes_necessarios', score: 0,
+            resumo: 'Aguardando conexão com GitHub para análise completa. Conecte o repositório e re-analise.',
+            checks: [{ categoria: 'Pré-requisito', item: 'Código-fonte', status: 'erro', detalhe: 'Sem acesso ao código. Conecte o GitHub do projeto para uma análise completa.', sugestao: 'Use o botão "Conectar GitHub no Lovable" abaixo.' }],
+            model_used: 'none', tempo_analise_ms: 0,
+          } as any).select().single()
+
+          return NextResponse.json({
+            laudo_id: laudoData?.id, artifact_id: art.id,
+            resultado: 'ajustes_necessarios', score: 0,
+            sem_github: true, lovable_project_id: lovableProjectId,
+          })
+        }
       } else {
         // Lovable app / Vercel / externo
         const fetched = await fetchUrlContent(fetchUrl)
