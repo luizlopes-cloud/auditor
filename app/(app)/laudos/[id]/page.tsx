@@ -126,6 +126,9 @@ export default function LaudoDetailPage() {
   const [ghInput, setGhInput] = useState('')
   const [ghLinking, setGhLinking] = useState(false)
 
+  // Similares dropdown
+  const [simOpen, setSimOpen] = useState(false)
+
   const [activePanel, setActivePanel] = useState<'ui' | 'code' | 'spec' | 'acessos' | 'fix' | null>(null)
   const togglePanel = (panel: typeof activePanel) => setActivePanel(prev => prev === panel ? null : panel)
 
@@ -715,23 +718,32 @@ export default function LaudoDetailPage() {
         )}
       </div>
 
-      {/* Artefatos similares — auto-loaded */}
-      <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Merge className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold text-foreground">Artefatos similares</h2>
+      {/* Artefatos similares — dropdown colapsável */}
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden mb-6">
+        <button
+          onClick={() => similares && similares.length > 0 && setSimOpen(v => !v)}
+          className="w-full flex items-center gap-3 px-6 py-4 text-left hover:bg-accent/30 transition-colors"
+        >
+          <Merge className="h-4 w-4 text-muted-foreground shrink-0" />
+          <h2 className="text-sm font-semibold text-foreground flex-1">Artefatos similares</h2>
           {loadingSimilares && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground ml-auto">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <div className="h-3.5 w-3.5 rounded-full border-2 border-border/40 border-t-primary animate-spin" />
               Comparando...
             </div>
           )}
-        </div>
-        {!loadingSimilares && similares !== null && similares.length === 0 && (
-          <p className="text-sm text-muted-foreground/60">Nenhum artefato similar encontrado no catálogo.</p>
-        )}
-        {similares !== null && similares.length > 0 && (
-          <div className="space-y-3">
+          {!loadingSimilares && similares !== null && similares.length === 0 && (
+            <span className="text-xs text-muted-foreground/60">Nenhum similar</span>
+          )}
+          {similares && similares.length > 0 && (
+            <>
+              <span className="text-xs text-muted-foreground">{similares.length} encontrado{similares.length > 1 ? 's' : ''}</span>
+              {simOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+            </>
+          )}
+        </button>
+        {simOpen && similares && similares.length > 0 && (
+          <div className="px-6 pb-5 space-y-3 border-t border-border/50 pt-4">
             {similares.map(s => (
               <div key={s.id} className="rounded-lg border border-amber-700/40 bg-amber-950/20 p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -739,7 +751,7 @@ export default function LaudoDetailPage() {
                     <p className="text-sm font-medium text-amber-300">{s.motivo}</p>
                     <p className="text-xs text-muted-foreground">{s.recomendacao}</p>
                   </div>
-                  <Link href={`/laudos/${s.id}`} className="shrink-0 text-xs text-primary hover:text-primary/80 font-medium">Ver laudo do semelhante →</Link>
+                  <Link href={`/laudos/${s.id}`} className="shrink-0 text-xs text-primary hover:text-primary/80 font-medium">Ver laudo →</Link>
                 </div>
               </div>
             ))}
