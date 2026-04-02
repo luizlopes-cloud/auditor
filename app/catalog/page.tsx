@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, ArrowRight, CheckCircle2, FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion } from 'lucide-react'
+import { Search, ArrowRight, CheckCircle2, Clock, FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type ArtifactType = 'script' | 'planilha' | 'flow' | 'dashboard' | 'query' | 'outro'
@@ -11,6 +11,7 @@ type ArtifactType = 'script' | 'planilha' | 'flow' | 'dashboard' | 'query' | 'ou
 interface CatalogItem {
   id: string
   score: number
+  resultado: string
   resumo: string
   created_at: string
   artifacts: {
@@ -96,10 +97,17 @@ function ArtifactCard({ item }: { item: CatalogItem }) {
           <span className={cn('absolute top-3 left-3 px-2.5 py-1 rounded-md text-xs font-semibold backdrop-blur-sm', cfg.badge)}>
             {cfg.badgeText}
           </span>
-          <span className="absolute top-3 right-3 flex items-center gap-1 bg-black/20 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded-md">
-            <CheckCircle2 className="h-3 w-3" />
-            Aprovado
-          </span>
+          {item.resultado === 'aprovado' ? (
+            <span className="absolute top-3 right-3 flex items-center gap-1 bg-emerald-500/80 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded-md">
+              <CheckCircle2 className="h-3 w-3" />
+              Aprovado
+            </span>
+          ) : (
+            <span className="absolute top-3 right-3 flex items-center gap-1 bg-amber-500/80 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded-md">
+              <Clock className="h-3 w-3" />
+              Em revisão
+            </span>
+          )}
           <Icon className="h-12 w-12 text-white/20" />
         </div>
 
@@ -138,13 +146,14 @@ export default function CatalogPage() {
   const [search, setSearch] = useState('')
 
   useEffect(() => {
-    fetch('/api/laudos?resultado=aprovado&limit=100')
+    fetch('/api/laudos?limit=100')
       .then(r => r.json())
       .then(d => setItems(d.laudos ?? []))
       .finally(() => setLoading(false))
   }, [])
 
   const filtered = items.filter(item => {
+    if (item.resultado === 'reprovado') return false
     const art = item.artifacts
     if (filter && art.type !== filter) return false
     if (search) {
