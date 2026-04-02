@@ -192,11 +192,11 @@ export async function POST(req: NextRequest) {
 
         const effectiveGithubUrl = github_url?.trim() || fetched.detectedGithubUrl || autoGithub
         if (effectiveGithubUrl) {
+          artifactGithubUrl = effectiveGithubUrl // Set BEFORE fetch (usado na 409)
           const parsedGh = parseGitHubUrl(effectiveGithubUrl)
           if (parsedGh && !ORGS_APROVADAS.includes(parsedGh.owner.toLowerCase())) orgExterna = true
           try {
             const repoContent = await fetchRepoContent(effectiveGithubUrl)
-            artifactGithubUrl = effectiveGithubUrl
             artifactContent = repoContent.mainFiles.map(f => `// ${f.path}\n${f.content}`).join('\n\n')
             artifactName = name?.trim() || extractLovableName(cleanUrl) || fetched.title || parseGitHubUrl(effectiveGithubUrl)?.repo || 'Aplicação'
             artifactType = 'script'
@@ -274,16 +274,19 @@ export async function POST(req: NextRequest) {
         const laudos = existing.laudos as { id: string }[] | { id: string } | null
         existingLaudoId = Array.isArray(laudos) ? laudos[0]?.id : (laudos as any)?.id
         if (!force) {
-          // Salva lovable_project_id se extraído agora mas ausente no artifact
-          if (lovableProjectId && !(existing as any).lovable_project_id) {
-            await supabase.from('artifacts').update({ lovable_project_id: lovableProjectId } as any).eq('id', existing.id)
+          // Atualiza campos faltantes no artifact existente
+          const updateFields: Record<string, unknown> = {}
+          if (lovableProjectId && !(existing as any).lovable_project_id) updateFields.lovable_project_id = lovableProjectId
+          if (artifactGithubUrl && !(existing as any).github_url) updateFields.github_url = artifactGithubUrl
+          if (Object.keys(updateFields).length > 0) {
+            await supabase.from('artifacts').update(updateFields as any).eq('id', existing.id)
           }
           return NextResponse.json({
             error: 'Este artefato já foi analisado anteriormente.',
             existing_laudo_id: existingLaudoId ?? null,
             existing_artifact_id: existing.id,
             existing_name: (existing as any).name ?? null,
-            has_github: !!(existing as any).github_url,
+            has_github: !!(existing as any).github_url || !!artifactGithubUrl,
             lovable_project_id: (existing as any).lovable_project_id ?? lovableProjectId,
           }, { status: 409 })
         }
