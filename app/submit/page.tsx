@@ -148,6 +148,7 @@ export default function SubmitPage() {
   const [loadingStep, setLoadingStep] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ laudo_id: string; artifact_id?: string; resultado: string; score: number; sem_github?: boolean; org_externa?: boolean; replaced?: boolean; content_changed?: boolean; version?: number } | null>(null)
+  const [duplicate, setDuplicate] = useState<{ laudo_id: string; artifact_id: string } | null>(null)
 
   const detectHint = (u: string) => {
     if (!u) return null
@@ -166,6 +167,7 @@ export default function SubmitPage() {
     e.preventDefault()
     setError(null)
     setResult(null)
+    setDuplicate(null)
     setLoading(true)
     setLoadingStep(0)
 
@@ -196,16 +198,8 @@ export default function SubmitPage() {
       setLoadingStep(2)
       const data = await res.json()
       if (res.status === 409) {
-        // Artefato já existe — re-analisar automaticamente com force
-        const forceBody = { ...body, force: 'true' }
-        const forceRes = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(forceBody),
-        })
-        const forceData = await forceRes.json()
-        if (!forceRes.ok) { setError(forceData.error ?? 'Erro desconhecido'); setLoading(false); return }
-        setResult(forceData)
+        setDuplicate({ laudo_id: data.existing_laudo_id, artifact_id: data.existing_artifact_id })
+        setLoading(false)
         return
       }
       if (!res.ok) { setError(data.error ?? 'Erro desconhecido'); setLoading(false); return }
@@ -237,7 +231,53 @@ export default function SubmitPage() {
       <main className="flex-1 flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-xl">
 
-          {loading ? (
+          {duplicate ? (
+            <div className="text-center space-y-6 animate-in fade-in duration-500">
+              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-950/50 mx-auto">
+                <GitBranch className="h-8 w-8 text-amber-400" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Artefato já analisado</h1>
+                <p className="text-muted-foreground mt-1">Este artefato já possui um laudo. O que deseja fazer?</p>
+              </div>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => router.push(`/laudos/${duplicate.laudo_id}`)}
+                  className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+                >
+                  Ver laudo existente
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={async () => {
+                    setDuplicate(null)
+                    setLoading(true)
+                    setLoadingStep(0)
+                    const body: Record<string, string> = { mode, description, submitted_by: submittedBy || 'Anônimo', force: 'true' }
+                    if (mode === 'url') { body.url = normalizeUrl(url); if (githubUrl) body.github_url = normalizeUrl(githubUrl) }
+                    else if (mode === 'code') { body.code = code; if (fileName) body.file_name = fileName }
+                    else { body.file_name = fileName; body.file_content = fileContent }
+                    try {
+                      const res = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                      const data = await res.json()
+                      if (!res.ok) { setError(data.error ?? 'Erro'); return }
+                      setResult(data)
+                    } catch { setError('Erro de conexão.') }
+                    finally { setLoading(false) }
+                  }}
+                  className="w-full px-6 py-3 border border-border text-muted-foreground font-medium rounded-xl hover:bg-accent transition-colors"
+                >
+                  Re-analisar mesmo assim
+                </button>
+                <button
+                  onClick={() => setDuplicate(null)}
+                  className="text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                >
+                  Voltar
+                </button>
+              </div>
+            </div>
+          ) : loading ? (
             <div className="text-center">
               <AnalysisLoading step={loadingStep} />
             </div>
