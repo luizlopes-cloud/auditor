@@ -27,7 +27,7 @@ export default function AuditarPage() {
   const [loading, setLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<{ laudo_id: string; resultado: string; score: number } | null>(null)
+  const [result, setResult] = useState<{ laudo_id: string; resultado: string; score: number; sem_github?: boolean } | null>(null)
   const [duplicate, setDuplicate] = useState<{ laudo_id: string; artifact_id?: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -167,6 +167,12 @@ export default function AuditarPage() {
             showBar
             size="lg"
           />
+          {result.sem_github && (
+            <div className="rounded-lg border border-amber-700/40 bg-amber-950/20 px-4 py-3 text-sm text-amber-300 space-y-1">
+              <p className="font-medium">Análise baseada em HTML + JS compilado</p>
+              <p className="text-xs text-amber-300/80">Sem acesso ao código-fonte, a análise pode ser menos precisa. Para um laudo completo, publique o projeto no GitHub e forneça o link no campo "GitHub do projeto".</p>
+            </div>
+          )}
           <p className="text-muted-foreground text-sm">Laudo gerado com sucesso.</p>
           <div className="flex gap-3">
             <button

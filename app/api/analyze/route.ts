@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
     let artifactContent = ''
     let artifactGithubUrl: string | null = null
     let artifactSourceUrl: string | null = null
+    let semGithub = false
 
     // ── MODE: URL ───────────────────────────────────────────────────────────
     if (mode === 'url') {
@@ -101,6 +102,7 @@ export async function POST(req: NextRequest) {
           artifactName = name?.trim() || fetched.title || 'Aplicação'
           analysisContext = `## Artefato: ${artifactName}\n**URL:** ${cleanUrl}\n**Tipo detectado:** ${urlType}\n\n${fetched.content}`
           if (description) analysisContext = `**Objetivo declarado:** ${description}\n\n` + analysisContext
+          if (urlType === 'lovable' || urlType === 'vercel') semGithub = true
         }
       }
 
@@ -243,7 +245,7 @@ export async function POST(req: NextRequest) {
 
     if (!existingArtifactId) await supabase.from('artifacts').update({ status: 'done' }).eq('id', artifact.id)
 
-    return NextResponse.json({ laudo_id: laudo.id, artifact_id: artifact.id, resultado: laudoResult.resultado, score: laudoResult.score, version })
+    return NextResponse.json({ laudo_id: laudo.id, artifact_id: artifact.id, resultado: laudoResult.resultado, score: laudoResult.score, version, sem_github: semGithub })
   } catch (err) {
     console.error('[analyze] unhandled error:', err)
     return NextResponse.json({ error: 'Erro interno. Tente novamente.' }, { status: 500 })

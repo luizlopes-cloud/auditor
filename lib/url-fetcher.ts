@@ -81,6 +81,37 @@ export async function fetchUrlContent(url: string): Promise<FetchedUrl> {
   throw new Error(`Use lib/github.ts para URLs do GitHub`)
 }
 
+async function fetchExternalScripts(baseUrl: string, html: string): Promise<string[]> {
+  // Encontra src de scripts externos (bundles Vite/React)
+  const srcRegex = /<script[^>]+src=["']([^"']+)["'][^>]*>/gi
+  const srcs: string[] = []
+  let m
+  while ((m = srcRegex.exec(html)) !== null) {
+    const src = m[1]
+    if (src.endsWith('.js') || src.includes('/assets/')) srcs.push(src)
+  }
+
+  const results: string[] = []
+  const base = new URL(baseUrl)
+
+  await Promise.all(srcs.slice(0, 3).map(async src => {
+    try {
+      const fullUrl = src.startsWith('http') ? src : new URL(src, base).toString()
+      const res = await fetch(fullUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (auditor-seazone)' },
+        signal: AbortSignal.timeout(10000),
+      })
+      if (!res.ok) return
+      const text = await res.text()
+      // Pega início e fim do bundle (onde costumam estar configurações, rotas, strings visíveis)
+      const excerpt = text.slice(0, 8000) + (text.length > 8000 ? '\n...[truncado]...\n' + text.slice(-2000) : '')
+      results.push(`// Bundle: ${src}\n${excerpt}`)
+    } catch {}
+  }))
+
+  return results
+}
+
 async function fetchDeployedPage(url: string, type: UrlType): Promise<FetchedUrl> {
   const res = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (auditor-seazone)' },
@@ -97,7 +128,7 @@ async function fetchDeployedPage(url: string, type: UrlType): Promise<FetchedUrl
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
   const title = titleMatch ? titleMatch[1].trim() : url
 
-  // Tenta detectar link GitHub no HTML (Lovable às vezes inclui)
+  // Tenta detectar link GitHub no HTML
   const githubMatch = html.match(/https:\/\/github\.com\/[\w.-]+\/[\w.-]+/g)
   const detectedGithubUrl = githubMatch?.[0]
 
@@ -109,6 +140,11 @@ async function fetchDeployedPage(url: string, type: UrlType): Promise<FetchedUrl
     const s = match[1].trim()
     if (s.length > 50) inlineScripts.push(s.slice(0, 3000))
   }
+
+  // Busca bundles JS externos (Lovable/Vercel são SPAs — o código real está nos bundles)
+  const externalBundles = type === 'lovable' || type === 'vercel'
+    ? await fetchExternalScripts(url, html)
+    : []
 
   // Extrai meta tags relevantes
   const metaTags: string[] = []
@@ -123,18 +159,28 @@ async function fetchDeployedPage(url: string, type: UrlType): Promise<FetchedUrl
     `Tipo: ${type}`,
   ]
 
-  if (metaTags.length) parts.push(`\n### Meta tags\n${metaTags.join('\n')}`)
-  if (inlineScripts.length) {
-    parts.push(`\n### Scripts inline (${inlineScripts.length} encontrados)\n`)
-    inlineScripts.forEach((s, i) => parts.push(`\`\`\`\n// Script ${i + 1}\n${s}\n\`\`\``))
+  if (!detectedGithubUrl && type === 'lovable') {
+    parts.push(`\n> ⚠️ Sem acesso ao código-fonte (GitHub não vinculado). Análise baseada em HTML + JS compilado — pode ser menos precisa. Recomendação: publique o projeto no GitHub e forneça o link para análise completa.`)
   }
 
-  // HTML resumido (sem scripts/styles para análise de estrutura)
+  if (metaTags.length) parts.push(`\n### Meta tags\n${metaTags.join('\n')}`)
+
+  if (inlineScripts.length) {
+    parts.push(`\n### Scripts inline (${inlineScripts.length} encontrados)`)
+    inlineScripts.forEach((s, i) => parts.push(`\`\`\`\n// Script inline ${i + 1}\n${s}\n\`\`\``))
+  }
+
+  if (externalBundles.length) {
+    parts.push(`\n### Código dos bundles JS (${externalBundles.length} arquivo(s))`)
+    externalBundles.forEach(b => parts.push(`\`\`\`javascript\n${b}\n\`\`\``))
+  }
+
+  // HTML resumido
   const cleanHtml = html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
     .replace(/\s+/g, ' ')
-    .slice(0, 5000)
+    .slice(0, 3000)
 
   parts.push(`\n### Estrutura HTML (resumida)\n\`\`\`html\n${cleanHtml}\n\`\`\``)
 
