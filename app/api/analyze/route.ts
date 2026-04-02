@@ -39,6 +39,9 @@ export async function POST(req: NextRequest) {
     let orgExterna = false
     let previewUrl: string | null = null
     let lovableProjectId: string | null = null
+    let existingArtifactId: string | null = null
+    let existingLaudoId: string | null = null
+    let contentChanged = false
 
     // ── MODE: URL ───────────────────────────────────────────────────────────
     if (mode === 'url') {
@@ -80,17 +83,45 @@ export async function POST(req: NextRequest) {
       const urlType = detectUrlType(cleanUrl)
 
       if (urlType === 'github-pr') {
-        // Pull Request — analisa arquivos alterados
+        // Pull Request — busca artefato do repo e atualiza
         const parsed = parseGitHubUrl(cleanUrl)
         if (parsed && !ORGS_APROVADAS.includes(parsed.owner.toLowerCase())) orgExterna = true
         const { fetchPRContent } = await import('@/lib/github')
         const prContent = await fetchPRContent(cleanUrl)
-        artifactName = name?.trim() || `PR #${parsed?.pullNumber}: ${prContent.prTitle}`
+
+        // URL do repo (sem /pull/N)
+        const repoUrl = `https://github.com/${parsed?.owner}/${parsed?.repo}`
+        artifactGithubUrl = repoUrl
+        artifactSourceUrl = null // Não usar PR URL como source_url
         artifactType = 'script'
         artifactSource = 'github'
-        artifactGithubUrl = cleanUrl
         artifactContent = prContent.mainFiles.map(f => `// ${f.path}\n${f.content}`).join('\n\n')
-        analysisContext = buildAnalysisContext(artifactName, artifactContent, description ?? prContent.prDescription, { url: cleanUrl, language: prContent.language })
+        analysisContext = buildAnalysisContext(
+          `PR #${parsed?.pullNumber}: ${prContent.prTitle}`,
+          artifactContent,
+          description ?? prContent.prDescription,
+          { url: cleanUrl, language: prContent.language }
+        )
+
+        // Busca artefato existente do mesmo repo
+        const supabase = await createClient()
+        const { data: existingRepo } = await (supabase
+          .from('artifacts')
+          .select('id, name, laudos(id)') as any)
+          .eq('github_url', repoUrl)
+          .limit(1)
+          .maybeSingle()
+
+        if (existingRepo) {
+          // Atualiza artefato existente — PR é análise incremental
+          artifactName = existingRepo.name // mantém nome original
+          const laudos = existingRepo.laudos as { id: string }[] | { id: string } | null
+          const laudoId = Array.isArray(laudos) ? laudos[0]?.id : (laudos as any)?.id
+          existingArtifactId = existingRepo.id
+          if (laudoId) existingLaudoId = laudoId
+        } else {
+          artifactName = name?.trim() || parsed?.repo || 'Repositório GitHub'
+        }
       } else if (urlType === 'github-repo' || urlType === 'github-file') {
         // Verifica se o repo está na org certa
         const parsed = parseGitHubUrl(cleanUrl)
@@ -217,10 +248,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Verificar duplicata ──────────────────────────────────────────────
-    let existingArtifactId: string | null = null
-    let existingLaudoId: string | null = null
-    let contentChanged = false
-    if (!new_artifact && (artifactSourceUrl || artifactGithubUrl)) {
+    if (!new_artifact && !existingArtifactId && (artifactSourceUrl || artifactGithubUrl)) {
       const orConditions: string[] = []
       if (artifactSourceUrl) orConditions.push(`source_url.eq.${artifactSourceUrl}`)
       if (artifactGithubUrl) orConditions.push(`github_url.eq.${artifactGithubUrl}`)
