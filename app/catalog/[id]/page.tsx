@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowLeft, ExternalLink, CheckCircle2, Clock, FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion, User, Calendar } from 'lucide-react'
+import { ArrowLeft, ExternalLink, CheckCircle2, Clock, FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, Globe, User, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const typeIcon: Record<string, React.ElementType> = {
@@ -13,7 +13,7 @@ const typeIcon: Record<string, React.ElementType> = {
   flow: GitBranch,
   dashboard: LayoutDashboard,
   query: Database,
-  outro: FileQuestion,
+  outro: Globe,
 }
 
 const typeLabel: Record<string, string> = {
@@ -79,7 +79,7 @@ export default function CatalogDetailPage() {
   }
 
   const artifact = Array.isArray(laudo.artifacts) ? laudo.artifacts[0] : laudo.artifacts
-  const Icon = typeIcon[artifact?.type] ?? FileQuestion
+  const Icon = typeIcon[artifact?.type] ?? Globe
   const gradient = typeGradient[artifact?.type] ?? typeGradient.outro
   const date = new Date(laudo.created_at ?? '').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
   const isApproved = laudo.resultado === 'aprovado'

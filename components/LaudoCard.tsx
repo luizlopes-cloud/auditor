@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ScoreBadge } from './ScoreBadge'
-import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion, Trash2, Pencil, Check, X } from 'lucide-react'
+import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, Globe, Trash2, Pencil, Check, X } from 'lucide-react'
 
 type Resultado = 'aprovado' | 'ajustes_necessarios' | 'reprovado'
 type ArtifactType = 'script' | 'planilha' | 'flow' | 'dashboard' | 'query' | 'outro'
@@ -15,7 +15,7 @@ const typeIcon: Record<ArtifactType, React.ElementType> = {
   flow: GitBranch,
   dashboard: LayoutDashboard,
   query: Database,
-  outro: FileQuestion,
+  outro: Globe,
 }
 
 interface LaudoCardProps {
@@ -32,7 +32,7 @@ interface LaudoCardProps {
 
 export function LaudoCard({ id, artifactId, name, type, resultado, score, resumo, submittedBy, createdAt }: LaudoCardProps) {
   const router = useRouter()
-  const Icon = typeIcon[type] ?? FileQuestion
+  const Icon = typeIcon[type] ?? Globe
   const date = new Date(createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
   const [confirm, setConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)

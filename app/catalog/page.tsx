@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, ArrowRight, CheckCircle2, Clock, FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion } from 'lucide-react'
+import { Search, ArrowRight, CheckCircle2, Clock, FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FloatingAssistant } from '@/components/FloatingAssistant'
 
@@ -70,7 +70,7 @@ const TYPE_CONFIG: Record<ArtifactType, {
   },
   outro: {
     label: 'Outro',
-    icon: FileQuestion,
+    icon: Globe,
     gradient: 'from-slate-500 to-slate-800',
     badge: 'bg-slate-500/80 text-white',
     badgeText: 'Outro',

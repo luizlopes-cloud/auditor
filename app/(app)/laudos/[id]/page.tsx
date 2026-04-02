@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ScoreBadge } from '@/components/ScoreBadge'
 import { CheckItem } from '@/components/CheckItem'
-import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion, ArrowLeft, ExternalLink, Trash2, Merge, RotateCcw, Link2, CheckCircle2, XCircle, MessageSquare, Send, Pencil, ChevronDown, ChevronRight } from 'lucide-react'
+import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, Globe, ArrowLeft, ExternalLink, Trash2, Merge, RotateCcw, Link2, CheckCircle2, XCircle, MessageSquare, Send, Pencil, ChevronDown, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 type Check = {
@@ -19,7 +19,7 @@ type Comentario = { id: string; autor: string; texto: string; created_at: string
 
 const typeIcon: Record<string, React.ElementType> = {
   script: FileCode2, planilha: FileSpreadsheet, flow: GitBranch,
-  dashboard: LayoutDashboard, query: Database, outro: FileQuestion,
+  dashboard: LayoutDashboard, query: Database, outro: Globe,
 }
 const typeLabel: Record<string, string> = {
   script: 'Script', planilha: 'Planilha', flow: 'Flow',
@@ -255,7 +255,7 @@ export default function LaudoDetailPage() {
   const artifact = Array.isArray(laudo.artifacts) ? laudo.artifacts[0] : laudo.artifacts
   const checks = (laudo.checks as Check[]) ?? []
   const categories = [...new Set(checks.map((c: Check) => c.categoria))]
-  const Icon = typeIcon[artifact?.type] ?? FileQuestion
+  const Icon = typeIcon[artifact?.type] ?? Globe
   const version = (laudo as any).version ?? 1
   const date = new Date(laudo.created_at ?? '').toLocaleDateString('pt-BR', {
     day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
