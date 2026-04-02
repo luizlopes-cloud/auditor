@@ -31,7 +31,7 @@ export default function SubmitPage() {
   const [loading, setLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<{ laudo_id: string; resultado: string; score: number; sem_github?: boolean; org_externa?: boolean } | null>(null)
+  const [result, setResult] = useState<{ laudo_id: string; resultado: string; score: number; sem_github?: boolean; org_externa?: boolean; replaced?: boolean; content_changed?: boolean; version?: number } | null>(null)
 
   const detectHint = (u: string) => {
     if (!u) return null
@@ -79,6 +79,19 @@ export default function SubmitPage() {
       })
       setLoadingStep(2)
       const data = await res.json()
+      if (res.status === 409) {
+        // Artefato já existe — re-analisar automaticamente com force
+        const forceBody = { ...body, force: 'true' }
+        const forceRes = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(forceBody),
+        })
+        const forceData = await forceRes.json()
+        if (!forceRes.ok) { setError(forceData.error ?? 'Erro desconhecido'); setLoading(false); return }
+        setResult(forceData)
+        return
+      }
       if (!res.ok) { setError(data.error ?? 'Erro desconhecido'); setLoading(false); return }
       setResult(data)
     } catch {
@@ -118,8 +131,16 @@ export default function SubmitPage() {
                 <CheckCircle2 className="h-8 w-8 text-emerald-400" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-foreground">Laudo gerado!</h1>
-                <p className="text-muted-foreground mt-1">A análise foi concluída com sucesso.</p>
+                <h1 className="text-2xl font-bold text-foreground">
+                  {result.replaced ? 'Laudo atualizado!' : result.version && result.version > 1 ? `Laudo V${result.version} gerado!` : 'Laudo gerado!'}
+                </h1>
+                <p className="text-muted-foreground mt-1">
+                  {result.replaced
+                    ? 'O artefato não mudou — o laudo anterior foi substituído pela nova análise.'
+                    : result.content_changed
+                      ? 'O artefato foi atualizado — nova versão do laudo criada.'
+                      : 'A análise foi concluída com sucesso.'}
+                </p>
               </div>
               <div className="bg-card rounded-2xl p-6 inline-block border border-border">
                 <ScoreBadge

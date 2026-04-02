@@ -149,8 +149,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Modo inválido. Use: url, code ou file' }, { status: 400 })
     }
 
-    // ── Verificar duplicata exata ──────────────────────────────────────────
+    // ── Verificar duplicata ──────────────────────────────────────────────
     let existingArtifactId: string | null = null
+    let existingLaudoId: string | null = null
+    let contentChanged = false
     if (artifactSourceUrl || artifactGithubUrl) {
       const orConditions: string[] = []
       if (artifactSourceUrl) orConditions.push(`source_url.eq.${artifactSourceUrl}`)
@@ -158,14 +160,14 @@ export async function POST(req: NextRequest) {
 
       const { data: existing } = await supabase
         .from('artifacts')
-        .select('id, laudos(id)')
+        .select('id, content, laudos(id)')
         .or(orConditions.join(','))
         .limit(1)
         .maybeSingle()
 
       if (existing) {
         const laudos = existing.laudos as { id: string }[] | { id: string } | null
-        const existingLaudoId = Array.isArray(laudos) ? laudos[0]?.id : laudos?.id
+        existingLaudoId = Array.isArray(laudos) ? laudos[0]?.id : (laudos as any)?.id
         if (!force) {
           return NextResponse.json({
             error: 'Este artefato já foi analisado anteriormente.',
@@ -174,6 +176,10 @@ export async function POST(req: NextRequest) {
           }, { status: 409 })
         }
         existingArtifactId = existing.id
+        // Compara conteúdo: se mudou, é nova versão; se igual, substitui
+        const oldContent = (existing.content ?? '').slice(0, 5000)
+        const newContent = artifactContent.slice(0, 5000)
+        contentChanged = oldContent !== newContent
       }
     }
 
@@ -221,45 +227,73 @@ export async function POST(req: NextRequest) {
 
     const tempo_analise_ms = Date.now() - start
 
-    // ── Determinar versão ──────────────────────────────────────────────────
-    let version = 1
-    if (existingArtifactId) {
-      const { data: versionRows } = await supabase
-        .from('laudos')
-        .select('version')
-        .eq('artifact_id', artifact.id)
-        .order('version', { ascending: false })
-        .limit(1)
-      version = ((versionRows?.[0] as any)?.version ?? 1) + 1
-    }
-
     // ── Persistir laudo ────────────────────────────────────────────────────
-    const laudoInsert: Record<string, unknown> = {
-      artifact_id: artifact.id,
-      resultado: laudoResult.resultado,
-      score: laudoResult.score,
-      resumo: laudoResult.resumo,
-      checks: laudoResult.checks as unknown as import('@/types/database').Json,
-      model_used: laudoResult.model_used,
-      tempo_analise_ms,
-    }
-    // Só inclui version se for nova versão (evita erro se migration não rodou)
-    if (version > 1) laudoInsert.version = version
+    let laudo: { id: string } | null = null
+    let laudoError: unknown = null
+    let version = 1
 
-    const { data: laudo, error: laudoError } = await supabase
-      .from('laudos')
-      .insert(laudoInsert as any)
-      .select()
-      .single()
+    if (existingArtifactId && !contentChanged && existingLaudoId) {
+      // Conteúdo igual → substitui o laudo existente (mesmo artefato)
+      const { data, error } = await supabase
+        .from('laudos')
+        .update({
+          resultado: laudoResult.resultado,
+          score: laudoResult.score,
+          resumo: laudoResult.resumo,
+          checks: laudoResult.checks as unknown as import('@/types/database').Json,
+          model_used: laudoResult.model_used,
+          tempo_analise_ms,
+        } as any)
+        .eq('id', existingLaudoId)
+        .select()
+        .single()
+      laudo = data
+      laudoError = error
+      // Atualiza conteúdo do artefato se mudou algo menor
+      await supabase.from('artifacts').update({ content: artifactContent.slice(0, 20000) } as any).eq('id', existingArtifactId)
+    } else {
+      // Conteúdo mudou ou artefato novo → cria novo laudo (nova versão)
+      if (existingArtifactId && contentChanged) {
+        const { data: versionRows } = await supabase
+          .from('laudos')
+          .select('version')
+          .eq('artifact_id', artifact!.id)
+          .order('version', { ascending: false })
+          .limit(1)
+        version = ((versionRows?.[0] as any)?.version ?? 1) + 1
+        // Atualiza conteúdo do artefato
+        await supabase.from('artifacts').update({ content: artifactContent.slice(0, 20000) } as any).eq('id', existingArtifactId)
+      }
+
+      const laudoInsert: Record<string, unknown> = {
+        artifact_id: artifact!.id,
+        resultado: laudoResult.resultado,
+        score: laudoResult.score,
+        resumo: laudoResult.resumo,
+        checks: laudoResult.checks as unknown as import('@/types/database').Json,
+        model_used: laudoResult.model_used,
+        tempo_analise_ms,
+      }
+      if (version > 1) laudoInsert.version = version
+
+      const { data, error } = await supabase
+        .from('laudos')
+        .insert(laudoInsert as any)
+        .select()
+        .single()
+      laudo = data
+      laudoError = error
+    }
 
     if (laudoError || !laudo) {
-      console.error('[analyze] laudo insert error:', laudoError)
+      console.error('[analyze] laudo insert/update error:', laudoError)
       return NextResponse.json({ error: 'Erro ao salvar laudo' }, { status: 500 })
     }
 
     if (!existingArtifactId) await supabase.from('artifacts').update({ status: 'done' }).eq('id', artifact.id)
 
-    return NextResponse.json({ laudo_id: laudo.id, artifact_id: artifact.id, resultado: laudoResult.resultado, score: laudoResult.score, version, sem_github: semGithub, org_externa: orgExterna })
+    const replaced = existingArtifactId && !contentChanged && !!existingLaudoId
+    return NextResponse.json({ laudo_id: laudo.id, artifact_id: artifact!.id, resultado: laudoResult.resultado, score: laudoResult.score, version, sem_github: semGithub, org_externa: orgExterna, replaced, content_changed: contentChanged })
   } catch (err) {
     console.error('[analyze] unhandled error:', err)
     return NextResponse.json({ error: 'Erro interno. Tente novamente.' }, { status: 500 })
