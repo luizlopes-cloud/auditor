@@ -882,10 +882,34 @@ export default function LaudoDetailPage() {
                 <span className="text-muted-foreground">{fixResult.total_problems ?? 0} problemas total</span>
               </div>
               {fixResult.pr_url && (
-                <a href={fixResult.pr_url} target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
-                  <ExternalLink className="h-4 w-4" /> Ver Pull Request
-                </a>
+                <div className="flex gap-2 flex-wrap">
+                  <a href={fixResult.pr_url} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+                    <ExternalLink className="h-4 w-4" /> Ver Pull Request
+                  </a>
+                  <button
+                    onClick={async () => {
+                      const prMatch = fixResult.pr_url.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/)
+                      if (!prMatch) return
+                      const [, prOwner, prRepo, prNumber] = prMatch
+                      const res = await fetch(`/api/github/merge`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ owner: prOwner, repo: prRepo, pull_number: parseInt(prNumber) }),
+                      })
+                      const data = await res.json()
+                      if (data.merged) {
+                        setFixResult({ ...fixResult, merged: true })
+                      } else {
+                        alert(data.error ?? 'Erro ao fazer merge')
+                      }
+                    }}
+                    disabled={fixResult.merged}
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${fixResult.merged ? 'bg-emerald-900/40 text-emerald-400 cursor-default' : 'bg-emerald-600 text-white hover:bg-emerald-500'}`}
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    {fixResult.merged ? 'Merged!' : 'Merge PR'}
+                  </button>
+                </div>
               )}
               {!fixResult.pr_url && fixResult.branch && (
                 <p className="text-xs text-muted-foreground">Branch criada: <span className="font-mono text-foreground">{fixResult.branch}</span></p>
