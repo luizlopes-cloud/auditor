@@ -21,7 +21,6 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // forceOpen from parent (e.g. "Não achou o que procurava?")
   useEffect(() => {
     if (forceOpen) {
       setOpen(true)
@@ -29,7 +28,6 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
     }
   }, [forceOpen, onClose])
 
-  // Seed initial assistant message when first opened
   useEffect(() => {
     if (open && messages.length === 0 && initialMessage) {
       setMessages([{ role: 'assistant', content: initialMessage }])
@@ -40,10 +38,6 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
-
-  const handleClose = () => {
-    setOpen(false)
-  }
 
   const send = async () => {
     const text = input.trim()
@@ -62,11 +56,10 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
         body: JSON.stringify({ messages: next, context }),
       })
       const data = await res.json()
-      if (data.text) {
-        setMessages(prev => [...prev, { role: 'assistant', content: data.text }])
-      } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: 'Não consegui processar. Tente novamente.' }])
-      }
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: data.text ?? 'Não consegui processar. Tente novamente.',
+      }])
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Erro de conexão. Tente novamente.' }])
     } finally {
@@ -78,9 +71,12 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
     <>
       {/* Panel */}
       {open && (
-        <div className="fixed bottom-20 right-6 z-50 w-[360px] max-h-[520px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200">
+        <div
+          className="fixed bottom-[72px] right-6 w-[360px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200"
+          style={{ zIndex: 9998, maxHeight: '520px' }}
+        >
           {/* Header */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-primary/5">
+          <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-primary/5 shrink-0">
             <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center">
               <Bot className="h-4 w-4 text-primary" />
             </div>
@@ -89,7 +85,7 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
               <p className="text-xs text-muted-foreground">Auditoria · Seazone</p>
             </div>
             <button
-              onClick={handleClose}
+              onClick={() => setOpen(false)}
               className="ml-auto text-muted-foreground hover:text-foreground transition-colors"
             >
               <X className="h-4 w-4" />
@@ -101,7 +97,7 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
             {messages.map((m, i) => (
               <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
                 <div className={cn(
-                  'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
+                  'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap',
                   m.role === 'user'
                     ? 'bg-primary text-white rounded-br-sm'
                     : 'bg-accent text-foreground rounded-bl-sm'
@@ -121,7 +117,7 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
           </div>
 
           {/* Input */}
-          <div className="p-3 border-t border-border flex gap-2">
+          <div className="p-3 border-t border-border flex gap-2 shrink-0">
             <input
               ref={inputRef}
               type="text"
@@ -147,10 +143,12 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
       <button
         onClick={() => setOpen(v => !v)}
         className={cn(
-          'fixed bottom-6 right-6 z-50 h-13 w-13 rounded-full shadow-lg flex items-center justify-center transition-all duration-200',
-          open ? 'bg-muted text-foreground scale-95' : 'bg-primary text-white hover:bg-primary/90 hover:scale-105'
+          'fixed bottom-6 right-6 rounded-full shadow-xl flex items-center justify-center transition-all duration-200',
+          open
+            ? 'bg-muted text-foreground'
+            : 'bg-primary text-white hover:bg-primary/90 hover:scale-105'
         )}
-        style={{ height: '52px', width: '52px' }}
+        style={{ height: '52px', width: '52px', zIndex: 9999 }}
         aria-label="Assistente"
       >
         {open ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}

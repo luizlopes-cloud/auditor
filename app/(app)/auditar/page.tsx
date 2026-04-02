@@ -194,9 +194,14 @@ export default function AuditarPage() {
             size="lg"
           />
           {result.sem_github && (
-            <div className="rounded-lg border border-amber-700/40 bg-amber-950/20 px-4 py-3 text-sm text-amber-300 space-y-1">
+            <div className="rounded-lg border border-amber-700/40 bg-amber-950/20 px-4 py-3 text-sm text-amber-300 space-y-2">
               <p className="font-medium">Análise baseada em HTML + JS compilado</p>
-              <p className="text-xs text-amber-300/80">Sem acesso ao código-fonte, a análise pode ser menos precisa. Para um laudo completo, publique o projeto no GitHub e forneça o link no campo "GitHub do projeto".</p>
+              <p className="text-xs text-amber-300/80">Sem o código-fonte, o laudo pode ser menos preciso. Para re-analisar com código completo:</p>
+              <ol className="text-xs text-amber-300/80 space-y-1 pl-3">
+                <li><span className="font-medium text-amber-300">1.</span> No Lovable, abra as configurações do projeto → <span className="font-mono bg-amber-900/40 px-1 rounded">Settings</span></li>
+                <li><span className="font-medium text-amber-300">2.</span> Conecte sua conta GitHub e publique o repositório</li>
+                <li><span className="font-medium text-amber-300">3.</span> Volte aqui, cole o link do GitHub e clique em <span className="font-medium text-amber-300">Criar nova versão</span></li>
+              </ol>
             </div>
           )}
           <p className="text-muted-foreground text-sm">Laudo gerado com sucesso.</p>
@@ -252,6 +257,14 @@ export default function AuditarPage() {
                 </button>
               ))}
             </div>
+
+            {/* Drop zone hint — visible when not dragging */}
+            {mode !== 'file' && (
+              <div className="mx-5 mt-4 border border-dashed border-border/50 rounded-lg px-4 py-2.5 flex items-center gap-2 text-xs text-muted-foreground/50">
+                <Upload className="h-3.5 w-3.5 shrink-0" />
+                Arraste qualquer arquivo aqui para analisar diretamente
+              </div>
+            )}
 
             <div className="p-5 space-y-4">
               {mode === 'url' && (
@@ -312,17 +325,34 @@ export default function AuditarPage() {
                     ) : null}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-foreground/80 mb-1.5">
-                      <GitBranch className="inline h-3.5 w-3.5 mr-1" />
-                      GitHub do projeto (opcional)
-                    </label>
+                    {urlHint.includes('Lovable') || urlHint.includes('Vercel') ? (
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-sm font-medium text-foreground/80">
+                          <GitBranch className="inline h-3.5 w-3.5 mr-1" />
+                          GitHub do projeto
+                        </label>
+                        <span className="text-[10px] font-semibold uppercase tracking-wide bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                          Recomendado
+                        </span>
+                      </div>
+                    ) : (
+                      <label className="block text-sm font-medium text-foreground/80 mb-1.5">
+                        <GitBranch className="inline h-3.5 w-3.5 mr-1" />
+                        GitHub do projeto <span className="text-muted-foreground font-normal">(opcional)</span>
+                      </label>
+                    )}
                     <input
                       type="text"
                       value={githubUrl}
                       onChange={e => setGithubUrl(e.target.value)}
-                      placeholder="https://github.com/org/repo — se Lovable/Vercel tiver repo vinculado"
-                      className={inputCls}
+                      placeholder="https://github.com/org/repo"
+                      className={cn(inputCls, (urlHint.includes('Lovable') || urlHint.includes('Vercel')) && !githubUrl && 'border-amber-500/50 focus:ring-amber-400/40 focus:border-amber-400/60')}
                     />
+                    {(urlHint.includes('Lovable') || urlHint.includes('Vercel')) && !githubUrl && (
+                      <p className="mt-1.5 text-xs text-amber-400/80">
+                        Sem o GitHub, a análise usará o JS compilado — menos precisa. Se o projeto tiver repositório vinculado, cole o link aqui.
+                      </p>
+                    )}
                   </div>
                 </>
               )}
