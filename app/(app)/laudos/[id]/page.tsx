@@ -557,7 +557,7 @@ export default function LaudoDetailPage() {
                     <p className="text-sm font-medium text-amber-300">{s.motivo}</p>
                     <p className="text-xs text-muted-foreground">{s.recomendacao}</p>
                   </div>
-                  <Link href={`/laudos/${s.id}`} className="shrink-0 text-xs text-primary hover:text-primary/80 font-medium">Ver laudo →</Link>
+                  <Link href={`/laudos/${s.id}`} className="shrink-0 text-xs text-primary hover:text-primary/80 font-medium">Ver laudo do semelhante →</Link>
                 </div>
               </div>
             ))}
