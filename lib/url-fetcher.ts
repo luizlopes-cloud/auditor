@@ -124,6 +124,24 @@ async function fetchDeployedPage(url: string, type: UrlType): Promise<FetchedUrl
 
   const html = await res.text()
 
+  // Detecta barreira de login
+  const looksLikeAuthWall = (() => {
+    const lower = html.toLowerCase()
+    const hasPasswordInput = /<input[^>]+type=["']?password/i.test(html)
+    const hasLoginText =
+      (lower.includes('sign in') && lower.includes('email')) ||
+      (lower.includes('log in') && lower.includes('password')) ||
+      (lower.includes('entrar') && lower.includes('senha')) ||
+      (lower.includes('login') && lower.includes('password'))
+    return hasPasswordInput || hasLoginText
+  })()
+
+  if (looksLikeAuthWall) {
+    throw new Error(
+      'Esta aplicação exige login para ser acessada. Para analisar, forneça o link do GitHub do projeto no campo "GitHub do projeto" abaixo — assim analisamos o código-fonte diretamente, sem precisar de acesso ao app.'
+    )
+  }
+
   // Extrai título
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
   const title = titleMatch ? titleMatch[1].trim() : url

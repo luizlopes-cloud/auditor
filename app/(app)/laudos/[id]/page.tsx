@@ -566,7 +566,7 @@ export default function LaudoDetailPage() {
               </div>
               <div className="space-y-2">
                 {categoryChecks.map((check: Check, i: number) => (
-                  <CheckItem key={i} {...check} />
+                  <CheckItem key={i} {...check} laudoId={id} />
                 ))}
               </div>
             </div>

@@ -31,6 +31,7 @@ export default function AuditarPage() {
   const [result, setResult] = useState<{ laudo_id: string; resultado: string; score: number; sem_github?: boolean } | null>(null)
   const [duplicate, setDuplicate] = useState<{ laudo_id: string; artifact_id?: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const codeFileRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
 
   const [url, setUrl] = useState('')
@@ -329,7 +330,31 @@ export default function AuditarPage() {
               {mode === 'code' && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-foreground/80 mb-1.5">Nome do arquivo (opcional)</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-sm font-medium text-foreground/80">Nome do arquivo (opcional)</label>
+                      <button
+                        type="button"
+                        onClick={() => codeFileRef.current?.click()}
+                        className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        Importar arquivo
+                      </button>
+                      <input
+                        ref={codeFileRef}
+                        type="file"
+                        className="hidden"
+                        accept=".py,.ts,.tsx,.js,.jsx,.sql,.json,.yaml,.yml,.txt,.md,.csv,.sh,.go,.rb,.php,.java,.r,.ipynb,.toml,.xml,.html,.env"
+                        onChange={e => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          setFileName(file.name)
+                          const reader = new FileReader()
+                          reader.onload = ev => setCode(ev.target?.result as string)
+                          reader.readAsText(file)
+                        }}
+                      />
+                    </div>
                     <input
                       type="text"
                       value={fileName}

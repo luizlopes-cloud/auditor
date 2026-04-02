@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react'
+import { ChevronDown, ChevronRight, CheckCircle2, AlertTriangle, XCircle, MessageSquarePlus, Send, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type Status = 'ok' | 'aviso' | 'erro'
@@ -18,11 +18,36 @@ interface CheckItemProps {
   status: Status
   detalhe: string
   sugestao?: string
+  laudoId?: string
 }
 
-export function CheckItem({ categoria, item, status, detalhe, sugestao }: CheckItemProps) {
+export function CheckItem({ categoria, item, status, detalhe, sugestao, laudoId }: CheckItemProps) {
   const [open, setOpen] = useState(status !== 'ok')
+  const [contesting, setContesting] = useState(false)
+  const [contestText, setContestText] = useState('')
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
   const { icon: Icon, color, bg, border } = statusConfig[status]
+
+  const handleContest = async () => {
+    if (!contestText.trim() || !laudoId) return
+    setSending(true)
+    try {
+      await fetch(`/api/laudos/${laudoId}/comentarios`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          autor: 'Revisor',
+          texto: `[Contestação — ${item}]\n${contestText.trim()}`,
+        }),
+      })
+      setSent(true)
+      setContestText('')
+      setTimeout(() => { setSent(false); setContesting(false) }, 2000)
+    } finally {
+      setSending(false)
+    }
+  }
 
   return (
     <div className={cn('rounded-lg border overflow-hidden', border)}>
@@ -50,6 +75,43 @@ export function CheckItem({ categoria, item, status, detalhe, sugestao }: CheckI
             <div className="bg-primary/10 border border-primary/20 rounded-md px-3 py-2">
               <p className="text-xs font-medium text-primary mb-0.5">Sugestão</p>
               <p className="text-sm text-foreground/80">{sugestao}</p>
+            </div>
+          )}
+          {laudoId && !contesting && (
+            <button
+              onClick={() => setContesting(true)}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mt-1"
+            >
+              <MessageSquarePlus className="h-3.5 w-3.5" />
+              Contestar este check
+            </button>
+          )}
+          {contesting && (
+            <div className="mt-2 space-y-2">
+              <textarea
+                autoFocus
+                value={contestText}
+                onChange={e => setContestText(e.target.value)}
+                rows={2}
+                placeholder="Descreva o que está incorreto ou forneça contexto adicional..."
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleContest}
+                  disabled={!contestText.trim() || sending}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-md hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                >
+                  {sent ? <Check className="h-3.5 w-3.5" /> : <Send className="h-3.5 w-3.5" />}
+                  {sent ? 'Enviado' : sending ? 'Enviando...' : 'Enviar contestação'}
+                </button>
+                <button
+                  onClick={() => { setContesting(false); setContestText('') }}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           )}
         </div>
