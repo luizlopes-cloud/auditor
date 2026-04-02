@@ -61,8 +61,15 @@ export function LaudoCard({ id, artifactId, name, type, resultado, score, resumo
     e.preventDefault()
     e.stopPropagation()
     setDeleting(true)
-    await fetch(`/api/laudos/${id}`, { method: 'DELETE' })
-    window.location.reload()
+    const res = await fetch(`/api/laudos/${id}`, { method: 'DELETE' })
+    if (res.ok) {
+      window.location.reload()
+    } else {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error ?? 'Erro ao deletar')
+      setDeleting(false)
+      setConfirm(false)
+    }
   }
 
   return (
