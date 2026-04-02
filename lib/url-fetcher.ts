@@ -206,8 +206,14 @@ async function fetchDeployedPage(url: string, type: UrlType): Promise<FetchedUrl
   const h1Match = html.match(/<h1[^>]*>([^<]+)<\/h1>/i)
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
   const rawTitle = (ogTitleMatch?.[1] ?? h1Match?.[1] ?? titleMatch?.[1] ?? '').trim()
-  // Filtra títulos genéricos (UUIDs, "Vite App", "React App", IDs hex)
-  const isGenericTitle = !rawTitle || /^[a-f0-9-]{20,}$/i.test(rawTitle) || /^(Vite|React|Next)\s*(App|[\+])/i.test(rawTitle) || rawTitle.length < 3
+  // Filtra títulos genéricos (UUIDs, "Vite App", "React App", IDs hex, "Id Preview ...")
+  const stripped = rawTitle.replace(/\s+/g, '')
+  const isGenericTitle = !rawTitle
+    || /^[a-f0-9-]{20,}$/i.test(stripped)
+    || /[a-f0-9]{8}[- ]?[a-f0-9]{4}[- ]?[a-f0-9]{4}[- ]?[a-f0-9]{4}[- ]?[a-f0-9]{12}/i.test(rawTitle)
+    || /^(Vite|React|Next)\s*(App|[\+])/i.test(rawTitle)
+    || /^id\s*preview/i.test(rawTitle)
+    || rawTitle.length < 3
   const title = isGenericTitle ? '' : rawTitle
 
   // Tenta detectar link GitHub no HTML
