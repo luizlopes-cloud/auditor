@@ -586,128 +586,6 @@ export default function LaudoDetailPage() {
         )}
       </div>
 
-      {/* ── Resultados das ferramentas (aparecem ACIMA dos botões) ── */}
-
-      {/* Painel: Checklist de Acessos */}
-      {acessosOpen && (
-        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><ClipboardCheck className="h-4 w-4 text-amber-400" /> Checklist de Acessos</h2>
-            <button onClick={() => setAcessosOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
-          </div>
-          {[
-            { key: 'github', label: 'GitHub', auto: !!artifact?.github_url, detail: artifact?.github_url ?? 'Não vinculado' },
-            { key: 'supabase', label: 'Supabase', auto: !!(artifact?.content ?? '').match(/supabase/i), detail: (artifact?.content ?? '').match(/supabase/i) ? 'Detectado no código' : 'Não detectado' },
-            { key: 'vercel', label: 'Vercel', auto: !!(artifact?.source_url ?? '').includes('vercel.app'), detail: (artifact?.source_url ?? '').includes('vercel.app') ? artifact?.source_url : 'Não detectado' },
-            { key: 'dominio', label: 'Domínio personalizado', auto: !!(artifact?.source_url && !artifact.source_url.includes('.vercel.app') && !artifact.source_url.includes('.lovable.app')), detail: artifact?.source_url && !artifact.source_url.includes('.vercel.app') && !artifact.source_url.includes('.lovable.app') ? artifact.source_url : 'Usando domínio padrão' },
-            { key: 'staging', label: 'Staging', auto: false, detail: 'Verificação manual' },
-          ].map(({ key, label, auto, detail }) => (
-            <button
-              key={key}
-              onClick={() => setAcessos(prev => ({ ...prev, [key]: !prev[key] }))}
-              className="w-full flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:bg-accent/30 transition-colors text-left"
-            >
-              {(acessos[key] || auto) ? (
-                <SquareCheck className="h-4 w-4 text-emerald-400 shrink-0" />
-              ) : (
-                <Square className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-              )}
-              <div className="flex-1 min-w-0">
-                <span className={`text-sm ${(acessos[key] || auto) ? 'text-foreground' : 'text-muted-foreground'}`}>{label}</span>
-                <p className="text-xs text-muted-foreground/60 truncate">{detail}</p>
-              </div>
-              {auto && <span className="text-[10px] text-emerald-400 font-medium shrink-0">Auto</span>}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Painel: Review UI */}
-      {uiOpen && reviewUi && typeof reviewUi === 'object' && (
-        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Monitor className="h-4 w-4 text-violet-400" /> Revisão de UI — Score {reviewUi.score_ui}/100</h2>
-            <button onClick={() => setUiOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
-          </div>
-          <p className="text-sm text-muted-foreground">{reviewUi.resumo}</p>
-          {reviewUi.categorias?.map((cat: any, ci: number) => (
-            <div key={ci} className="space-y-2">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{cat.nome} {cat.score != null && `— ${cat.score}/100`}</h3>
-              {cat.itens?.map((item: any, ii: number) => (
-                <div key={ii} className={`rounded-lg border p-3 text-xs space-y-1 ${item.status === 'ok' ? 'border-emerald-800/40 bg-emerald-950/20' : item.status === 'erro' ? 'border-red-800/40 bg-red-950/20' : 'border-amber-800/40 bg-amber-950/20'}`}>
-                  <p className="font-medium text-foreground">{item.item}</p>
-                  <p className="text-muted-foreground">{item.detalhe}</p>
-                  {item.sugestao && <p className="text-primary">{item.sugestao}</p>}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Painel: Review Code */}
-      {codeOpen && reviewCode && typeof reviewCode === 'object' && (
-        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Code2 className="h-4 w-4 text-cyan-400" /> Revisão de Código — Score {reviewCode.score_code}/100</h2>
-            <button onClick={() => setCodeOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
-          </div>
-          <p className="text-sm text-muted-foreground">{reviewCode.resumo}</p>
-          {reviewCode.categorias?.map((cat: any, ci: number) => (
-            <div key={ci} className="space-y-2">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{cat.nome}</h3>
-              {cat.itens?.map((item: any, ii: number) => (
-                <div key={ii} className={`rounded-lg border p-3 text-xs space-y-1 ${item.status === 'ok' ? 'border-emerald-800/40 bg-emerald-950/20' : item.status === 'erro' ? 'border-red-800/40 bg-red-950/20' : 'border-amber-800/40 bg-amber-950/20'}`}>
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium text-foreground">{item.item}</p>
-                    {item.arquivo && <span className="font-mono text-muted-foreground/50">{item.arquivo}</span>}
-                  </div>
-                  <p className="text-muted-foreground">{item.detalhe}</p>
-                  {item.sugestao && <p className="text-primary">{item.sugestao}</p>}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Painel: Spec */}
-      {specOpen && spec && typeof spec === 'object' && (
-        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><FileText className="h-4 w-4 text-emerald-400" /> Spec — {spec.nome}</h2>
-            <button onClick={() => setSpecOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
-          </div>
-          <p className="text-sm text-muted-foreground">{spec.descricao}</p>
-          {spec.publico_alvo && <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Público:</span> {spec.publico_alvo}</p>}
-          {spec.stack?.length > 0 && <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Stack:</span> {spec.stack.join(', ')}</p>}
-          {spec.funcionalidades?.length > 0 && (
-            <div className="space-y-1">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Funcionalidades</h3>
-              {spec.funcionalidades.map((f: any, i: number) => (
-                <div key={i} className="flex items-start gap-2 text-xs">
-                  <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${f.prioridade === 'essencial' ? 'bg-red-900/40 text-red-300' : f.prioridade === 'importante' ? 'bg-amber-900/40 text-amber-300' : 'bg-blue-900/40 text-blue-300'}`}>{f.prioridade}</span>
-                  <div><span className="font-medium text-foreground">{f.nome}</span> <span className="text-muted-foreground">— {f.descricao}</span></div>
-                </div>
-              ))}
-            </div>
-          )}
-          {spec.integrações?.length > 0 && <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Integrações:</span> {spec.integrações.join(', ')}</p>}
-          {spec.riscos?.length > 0 && (
-            <div className="space-y-1">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Riscos</h3>
-              {spec.riscos.map((r: string, i: number) => <p key={i} className="text-xs text-amber-400">• {r}</p>)}
-            </div>
-          )}
-          {spec.proximos_passos?.length > 0 && (
-            <div className="space-y-1">
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Próximos passos</h3>
-              {spec.proximos_passos.map((p: string, i: number) => <p key={i} className="text-xs text-muted-foreground">• {p}</p>)}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* ── Botões das ferramentas ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
         <button
@@ -803,6 +681,124 @@ export default function LaudoDetailPage() {
           </div>
         </button>
       </div>
+
+      {/* ── Resultados das ferramentas (abaixo dos botões) ── */}
+
+      {uiOpen && reviewUi && typeof reviewUi === 'object' && (
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Monitor className="h-4 w-4 text-violet-400" /> Revisão de UI — Score {reviewUi.score_ui}/100</h2>
+            <button onClick={() => setUiOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+          </div>
+          <p className="text-sm text-muted-foreground">{reviewUi.resumo}</p>
+          {reviewUi.categorias?.map((cat: any, ci: number) => (
+            <div key={ci} className="space-y-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{cat.nome} {cat.score != null && `— ${cat.score}/100`}</h3>
+              {cat.itens?.map((item: any, ii: number) => (
+                <div key={ii} className={`rounded-lg border p-3 text-xs space-y-1 ${item.status === 'ok' ? 'border-emerald-800/40 bg-emerald-950/20' : item.status === 'erro' ? 'border-red-800/40 bg-red-950/20' : 'border-amber-800/40 bg-amber-950/20'}`}>
+                  <p className="font-medium text-foreground">{item.item}</p>
+                  <p className="text-muted-foreground">{item.detalhe}</p>
+                  {item.sugestao && <p className="text-primary">{item.sugestao}</p>}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {codeOpen && reviewCode && typeof reviewCode === 'object' && (
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Code2 className="h-4 w-4 text-cyan-400" /> Revisão de Código — Score {reviewCode.score_code}/100</h2>
+            <button onClick={() => setCodeOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+          </div>
+          <p className="text-sm text-muted-foreground">{reviewCode.resumo}</p>
+          {reviewCode.categorias?.map((cat: any, ci: number) => (
+            <div key={ci} className="space-y-2">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{cat.nome}</h3>
+              {cat.itens?.map((item: any, ii: number) => (
+                <div key={ii} className={`rounded-lg border p-3 text-xs space-y-1 ${item.status === 'ok' ? 'border-emerald-800/40 bg-emerald-950/20' : item.status === 'erro' ? 'border-red-800/40 bg-red-950/20' : 'border-amber-800/40 bg-amber-950/20'}`}>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-foreground">{item.item}</p>
+                    {item.arquivo && <span className="font-mono text-muted-foreground/50">{item.arquivo}</span>}
+                  </div>
+                  <p className="text-muted-foreground">{item.detalhe}</p>
+                  {item.sugestao && <p className="text-primary">{item.sugestao}</p>}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {specOpen && spec && typeof spec === 'object' && (
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><FileText className="h-4 w-4 text-emerald-400" /> Spec — {spec.nome}</h2>
+            <button onClick={() => setSpecOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+          </div>
+          <p className="text-sm text-muted-foreground">{spec.descricao}</p>
+          {spec.publico_alvo && <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Público:</span> {spec.publico_alvo}</p>}
+          {spec.stack?.length > 0 && <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Stack:</span> {spec.stack.join(', ')}</p>}
+          {spec.funcionalidades?.length > 0 && (
+            <div className="space-y-1">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Funcionalidades</h3>
+              {spec.funcionalidades.map((f: any, i: number) => (
+                <div key={i} className="flex items-start gap-2 text-xs">
+                  <span className={`shrink-0 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase ${f.prioridade === 'essencial' ? 'bg-red-900/40 text-red-300' : f.prioridade === 'importante' ? 'bg-amber-900/40 text-amber-300' : 'bg-blue-900/40 text-blue-300'}`}>{f.prioridade}</span>
+                  <div><span className="font-medium text-foreground">{f.nome}</span> <span className="text-muted-foreground">— {f.descricao}</span></div>
+                </div>
+              ))}
+            </div>
+          )}
+          {spec.integrações?.length > 0 && <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Integrações:</span> {spec.integrações.join(', ')}</p>}
+          {spec.riscos?.length > 0 && (
+            <div className="space-y-1">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Riscos</h3>
+              {spec.riscos.map((r: string, i: number) => <p key={i} className="text-xs text-amber-400">• {r}</p>)}
+            </div>
+          )}
+          {spec.proximos_passos?.length > 0 && (
+            <div className="space-y-1">
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Próximos passos</h3>
+              {spec.proximos_passos.map((p: string, i: number) => <p key={i} className="text-xs text-muted-foreground">• {p}</p>)}
+            </div>
+          )}
+        </div>
+      )}
+
+      {acessosOpen && (
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><ClipboardCheck className="h-4 w-4 text-amber-400" /> Checklist de Acessos</h2>
+            <button onClick={() => setAcessosOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+          </div>
+          {[
+            { key: 'github', label: 'GitHub', auto: !!artifact?.github_url, detail: artifact?.github_url ?? 'Não vinculado' },
+            { key: 'supabase', label: 'Supabase', auto: !!(artifact?.content ?? '').match(/supabase/i), detail: (artifact?.content ?? '').match(/supabase/i) ? 'Detectado no código' : 'Não detectado' },
+            { key: 'vercel', label: 'Vercel', auto: !!(artifact?.source_url ?? '').includes('vercel.app'), detail: (artifact?.source_url ?? '').includes('vercel.app') ? artifact?.source_url : 'Não detectado' },
+            { key: 'dominio', label: 'Domínio personalizado', auto: !!(artifact?.source_url && !artifact.source_url.includes('.vercel.app') && !artifact.source_url.includes('.lovable.app')), detail: artifact?.source_url && !artifact.source_url.includes('.vercel.app') && !artifact.source_url.includes('.lovable.app') ? artifact.source_url : 'Usando domínio padrão' },
+            { key: 'staging', label: 'Staging', auto: false, detail: 'Verificação manual' },
+          ].map(({ key, label, auto, detail }) => (
+            <button
+              key={key}
+              onClick={() => setAcessos(prev => ({ ...prev, [key]: !prev[key] }))}
+              className="w-full flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:bg-accent/30 transition-colors text-left"
+            >
+              {(acessos[key] || auto) ? (
+                <SquareCheck className="h-4 w-4 text-emerald-400 shrink-0" />
+              ) : (
+                <Square className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+              )}
+              <div className="flex-1 min-w-0">
+                <span className={`text-sm ${(acessos[key] || auto) ? 'text-foreground' : 'text-muted-foreground'}`}>{label}</span>
+                <p className="text-xs text-muted-foreground/60 truncate">{detail}</p>
+              </div>
+              {auto && <span className="text-[10px] text-emerald-400 font-medium shrink-0">Auto</span>}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Checks por categoria */}
       <div className="space-y-6 mb-8">
