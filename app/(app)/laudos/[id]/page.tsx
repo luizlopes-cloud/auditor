@@ -103,9 +103,6 @@ export default function LaudoDetailPage() {
           setNotaAprovacao((data.laudo as any).nota_aprovacao ?? '')
           const art = Array.isArray(data.laudo.artifacts) ? data.laudo.artifacts[0] : data.laudo.artifacts
           setEquipeValue((art as any)?.equipe ?? '')
-          // Carrega caches salvos no banco
-          if ((data.laudo as any).review_ui) setReviewUi((data.laudo as any).review_ui)
-          if ((data.laudo as any).review_code) setReviewCode((data.laudo as any).review_code)
           if ((data.laudo as any).spec) setSpec((data.laudo as any).spec)
         }
       })
@@ -135,6 +132,10 @@ export default function LaudoDetailPage() {
         setLoadingSimilares(false)
       })
       .finally(() => setLoadingFunc(false))
+
+    // Load cached review UI & code via GET
+    fetch(`/api/laudos/${id}/review-ui`).then(r => r.json()).then(d => { if (d.review) setReviewUi(d.review) }).catch(() => {})
+    fetch(`/api/laudos/${id}/review-code`).then(r => r.json()).then(d => { if (d.review) setReviewCode(d.review) }).catch(() => {})
 
     // Load comments
     setLoadingComentarios(true)

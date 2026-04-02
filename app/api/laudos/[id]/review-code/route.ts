@@ -39,6 +39,16 @@ Categorias obrigatórias:
 Para cada item, cite o ARQUIVO e TRECHO específico. Seja técnico e direto.
 Responda em português brasileiro.`
 
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const supabase = await createClient()
+  const { data } = await supabase.from('laudos').select('*').eq('id', id).maybeSingle()
+  return NextResponse.json({ review: (data as any)?.review_code ?? null })
+}
+
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

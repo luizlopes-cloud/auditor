@@ -37,6 +37,16 @@ Categorias obrigatórias:
 Para cada item, seja ESPECÍFICO: diga o que viu, onde, e por que é problema ou está correto.
 Responda em português brasileiro.`
 
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const supabase = await createClient()
+  const { data } = await supabase.from('laudos').select('*').eq('id', id).maybeSingle()
+  return NextResponse.json({ review: (data as any)?.review_ui ?? null })
+}
+
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
