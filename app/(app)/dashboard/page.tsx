@@ -1,9 +1,9 @@
-export const dynamic = 'force-dynamic'
-
 import { createClient } from '@/lib/supabase/server'
 import { StatCard } from '@/components/StatCard'
 import { LaudoCard } from '@/components/LaudoCard'
 import { ShieldCheck, Trophy, BarChart3, TrendingUp } from 'lucide-react'
+
+export const dynamic = 'force-dynamic'
 
 export const dynamic = 'force-dynamic'
 
