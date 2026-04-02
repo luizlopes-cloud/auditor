@@ -248,6 +248,11 @@ export async function POST(req: NextRequest) {
 
     if (existingArtifactId) {
       artifact = { id: existingArtifactId }
+      // Atualiza nome, preview e conteúdo do artifact existente
+      const updateData: Record<string, unknown> = { name: artifactName }
+      if (previewUrl) updateData.preview_url = previewUrl
+      if (lovableProjectId) updateData.lovable_project_id = lovableProjectId
+      await supabase.from('artifacts').update(updateData as any).eq('id', existingArtifactId)
     } else {
       const insertData: Record<string, unknown> = {
           name: artifactName,
