@@ -87,14 +87,17 @@ NÃO crie checks genéricos como "Página está acessível" ou "Meta tags presen
 - Responsividade (mobile/desktop)?
 - Performance (lazy loading, paginação em listas grandes)?
 
-## Como calcular o score (OBRIGATÓRIO seguir esta fórmula)
+## Como calcular o score (OBRIGATÓRIO — o score DEVE ser derivado dos checks)
 
-1. Comece com 100 pontos
-2. Para cada check com status "erro": subtraia 8-15 pontos (crítico=15, moderado=10, leve=8)
-3. Para cada check com status "aviso": subtraia 2-5 pontos (importante=5, menor=2)
-4. Checks com "ok" não subtraem nada
-5. NUNCA dê score entre 60 e 70 sem justificar — essa faixa é proibida como "padrão seguro"
-6. Score final = 100 - total de deduções
+PASSO 1: Gere todos os checks primeiro
+PASSO 2: Conte: X checks com "erro", Y checks com "aviso", Z checks com "ok"
+PASSO 3: Calcule: score = 100 - (X * 10) - (Y * 3)
+PASSO 4: No campo "resumo", INCLUA a conta: "Score: 100 - (X erros × 10) - (Y avisos × 3) = resultado"
+
+A fórmula é fixa: cada erro = -10, cada aviso = -3. Sem exceções, sem arredondamentos criativos.
+Se 2 erros e 4 avisos: score = 100 - 20 - 12 = 68
+Se 0 erros e 2 avisos: score = 100 - 0 - 6 = 94
+Se 5 erros e 3 avisos: score = 100 - 50 - 9 = 41
 
 ## Resultado (baseado no score calculado)
 - **aprovado**: Score 75+ (no máximo avisos menores, zero erros críticos)

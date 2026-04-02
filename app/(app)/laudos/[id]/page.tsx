@@ -45,6 +45,9 @@ export default function LaudoDetailPage() {
   // Equipe inline edit
   const [editingEquipe, setEditingEquipe] = useState(false)
   const [equipeValue, setEquipeValue] = useState('')
+  const [editingName, setEditingName] = useState(false)
+  const [nameValue, setNameValue] = useState('')
+  const [savingName, setSavingName] = useState(false)
   const [savingEquipe, setSavingEquipe] = useState(false)
 
   // Manual approval
@@ -86,6 +89,18 @@ export default function LaudoDetailPage() {
   const [githubLoading, setGithubLoading] = useState(false)
   const [githubResult, setGithubResult] = useState<any>(null)
 
+  const saveName = async () => {
+    if (!nameValue.trim() || !artifact) return
+    setSavingName(true)
+    await fetch(`/api/artifacts/${artifact.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: nameValue.trim() }),
+    })
+    setSavingName(false)
+    setEditingName(false)
+    router.refresh()
+  }
+
   const runGithubAction = async (action: string) => {
     setGithubLoading(true)
     setGithubResult(null)
@@ -124,6 +139,7 @@ export default function LaudoDetailPage() {
           setNotaAprovacao((data.laudo as any).nota_aprovacao ?? '')
           const art = Array.isArray(data.laudo.artifacts) ? data.laudo.artifacts[0] : data.laudo.artifacts
           setEquipeValue((art as any)?.equipe ?? '')
+          setNameValue((art as any)?.name ?? '')
           if ((data.laudo as any).spec) setSpec((data.laudo as any).spec)
         }
       })
@@ -322,9 +338,32 @@ export default function LaudoDetailPage() {
             <Icon className="h-6 w-6 text-muted-foreground" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-foreground truncate">{artifact?.name}</h1>
-              {version > 1 && (
+            <div className="flex items-center gap-2 group/name">
+              {editingName ? (
+                <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                  <input
+                    autoFocus
+                    value={nameValue}
+                    onChange={e => setNameValue(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') setEditingName(false) }}
+                    className="text-xl font-bold bg-white text-slate-900 border border-primary/60 rounded px-2 py-0.5 focus:outline-none min-w-0 flex-1"
+                  />
+                  <button onClick={saveName} disabled={savingName} className="text-emerald-400 hover:text-emerald-300 shrink-0">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </button>
+                  <button onClick={() => setEditingName(false)} className="text-muted-foreground/50 hover:text-muted-foreground shrink-0">
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <h1 className="text-xl font-bold text-foreground truncate">{nameValue}</h1>
+                  <button onClick={() => setEditingName(true)} className="text-muted-foreground/30 hover:text-muted-foreground opacity-0 group-hover/name:opacity-100 transition-opacity shrink-0">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              )}
+              {version > 1 && !editingName && (
                 <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-primary/20 text-primary">
                   v{version}
                 </span>
