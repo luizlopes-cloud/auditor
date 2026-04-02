@@ -461,48 +461,55 @@ export default function LaudoDetailPage() {
       </div>
 
       {/* GitHub actions */}
-      {artifact && !artifact.github_url && (
+      {artifact && !artifact.github_url && (() => {
+        const [ghInput, setGhInput] = useState('')
+        const [ghLinking, setGhLinking] = useState(false)
+        return (
         <div className="bg-amber-950/20 border border-amber-700/40 rounded-xl p-5 mb-6 space-y-3">
           <div className="flex items-center gap-2">
             <GitBranch className="h-4 w-4 text-amber-400" />
-            <p className="text-sm font-semibold text-amber-300">Projeto sem GitHub</p>
+            <p className="text-sm font-semibold text-amber-300">Vincular GitHub</p>
           </div>
-          <p className="text-xs text-amber-300/70">Conecte ao GitHub para homologação completa:</p>
-          <div className="flex flex-wrap gap-2">
-            {(artifact as any).lovable_project_id ? (
-              <a
-                href={`https://lovable.dev/projects/${(artifact as any).lovable_project_id}/settings/integrations?connector=github&subtab=connectors`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-2 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-500 transition-colors inline-flex items-center gap-1.5"
-              >
-                <GitBranch className="h-3.5 w-3.5" />
-                Conectar GitHub no Lovable
-              </a>
-            ) : artifact.source_url?.includes('lovable') ? (
-              <button onClick={() => runGithubAction('lovable_link')} disabled={githubLoading}
-                className="px-3 py-2 bg-amber-700/60 text-amber-100 text-xs font-medium rounded-lg hover:bg-amber-600/60 disabled:opacity-50 transition-colors">
-                Como conectar no Lovable
-              </button>
-            ) : null}
-            {!artifact.source_url?.includes('lovable') && (
-              <button onClick={() => runGithubAction('create')} disabled={githubLoading}
-                className="px-3 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
-                {githubLoading ? 'Criando...' : 'Criar repositório'}
-              </button>
-            )}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={ghInput}
+              onChange={e => setGhInput(e.target.value)}
+              placeholder="github.com/org/repo"
+              className="flex-1 rounded-lg border border-amber-700/40 bg-amber-950/40 px-3 py-2 text-sm text-amber-100 placeholder:text-amber-300/40 focus:outline-none focus:ring-2 focus:ring-primary/40"
+              onKeyDown={e => {
+                if (e.key === 'Enter' && ghInput.trim()) {
+                  setGhLinking(true)
+                  fetch(`/api/artifacts/${artifact.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ github_url: ghInput.trim().startsWith('http') ? ghInput.trim() : `https://${ghInput.trim()}` }) })
+                    .then(() => window.location.reload())
+                }
+              }}
+            />
+            <button
+              onClick={() => {
+                if (!ghInput.trim()) return
+                setGhLinking(true)
+                fetch(`/api/artifacts/${artifact.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ github_url: ghInput.trim().startsWith('http') ? ghInput.trim() : `https://${ghInput.trim()}` }) })
+                  .then(() => window.location.reload())
+              }}
+              disabled={ghLinking || !ghInput.trim()}
+              className="px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors shrink-0"
+            >
+              {ghLinking ? 'Vinculando...' : 'Vincular'}
+            </button>
           </div>
-          {githubResult && (
-            <div className={`text-xs p-3 rounded-lg ${githubResult.error ? 'bg-red-950/40 text-red-300' : 'bg-emerald-950/40 text-emerald-300'}`}>
-              {githubResult.error ?? githubResult.message}
-              {githubResult.new_url && <a href={githubResult.new_url} target="_blank" className="block mt-1 text-primary underline">{githubResult.new_url}</a>}
-              {githubResult.steps && (
-                <ol className="mt-2 space-y-1 list-decimal list-inside">{githubResult.steps.map((s: string, i: number) => <li key={i}>{s}</li>)}</ol>
-              )}
-            </div>
+          {(artifact as any).lovable_project_id && (
+            <a
+              href={`https://lovable.dev/projects/${(artifact as any).lovable_project_id}/settings/integrations?connector=github&subtab=connectors`}
+              target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-amber-400/70 hover:text-amber-300 transition-colors"
+            >
+              <GitBranch className="h-3 w-3" /> Conectar GitHub no Lovable
+            </a>
           )}
         </div>
-      )}
+        )
+      })()}
       {artifact?.github_url && (() => {
         const match = artifact.github_url.match(/github\.com\/([^/]+)\//)
         const owner = match?.[1]?.toLowerCase()
