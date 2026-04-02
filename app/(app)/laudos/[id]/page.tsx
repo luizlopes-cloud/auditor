@@ -849,14 +849,14 @@ export default function LaudoDetailPage() {
               .catch(() => setFixResult({ error: 'Erro ao corrigir problemas' }))
               .finally(() => setLoadingFix(false))
           }}
-          disabled={loadingFix || !artifact?.github_url}
+          disabled={loadingFix || !artifact?.github_url || !reviewUi || !reviewCode}
           className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left disabled:opacity-60 sm:col-span-2"
         >
           <div className="h-9 w-9 rounded-lg bg-rose-900/40 flex items-center justify-center shrink-0"><Wrench className="h-4 w-4 text-rose-400" /></div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground">Corrigir Problemas</p>
             <p className="text-xs text-muted-foreground truncate">
-              {loadingFix ? 'Criando branch e aplicando correções...' : fixResult ? (activePanel === 'fix' ? 'Fechar' : 'Ver resultado') : !artifact?.github_url ? 'Requer GitHub' : 'Gera branch + PR com correções automáticas'}
+              {loadingFix ? 'Criando branch e aplicando correções...' : fixResult ? (activePanel === 'fix' ? 'Fechar' : 'Ver resultado') : !artifact?.github_url ? 'Requer GitHub' : !reviewUi || !reviewCode ? `Falta: ${[!reviewUi && 'Revisão UI', !reviewCode && 'Revisão Código'].filter(Boolean).join(', ')}` : 'Gera branch + PR com correções automáticas'}
             </p>
           </div>
         </button>

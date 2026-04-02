@@ -35,18 +35,28 @@ export async function POST(
 
     // 3. Parse GitHub URL
     const parsed = parseGitHubUrl(artifact.github_url)
-    if (!parsed) return NextResponse.json({ error: 'URL do GitHub inválida' }, { status: 400 })
+    if (!parsed) return NextResponse.json({ error: `URL do GitHub inválida: ${artifact.github_url}` }, { status: 400 })
     const { owner, repo } = parsed
 
     // 4. Busca árvore do repo
     const tree = await fetchRepoTree(owner, repo)
-    if (tree.length === 0) return NextResponse.json({ error: 'Repositório vazio ou inacessível' }, { status: 400 })
+    if (tree.length === 0) return NextResponse.json({ error: `Repositório vazio ou inacessível: ${owner}/${repo}` }, { status: 400 })
 
     // 5. Cria branch
-    const defaultBranch = await getDefaultBranch(owner, repo)
-    const sha = await getLatestCommitSha(owner, repo, defaultBranch)
+    let defaultBranch: string
+    let sha: string
+    try {
+      defaultBranch = await getDefaultBranch(owner, repo)
+      sha = await getLatestCommitSha(owner, repo, defaultBranch)
+    } catch (err) {
+      return NextResponse.json({ error: `Erro ao acessar repo ${owner}/${repo}: ${err}` }, { status: 500 })
+    }
     const branchName = `auditor/fixes-${Date.now()}`
-    await createBranch(owner, repo, branchName, sha)
+    try {
+      await createBranch(owner, repo, branchName, sha)
+    } catch (err) {
+      return NextResponse.json({ error: `Erro ao criar branch em ${owner}/${repo}: ${err}` }, { status: 500 })
+    }
 
     // 6. Agrupa problemas por arquivo (lê conteúdo da branch nova)
     const groups = await groupByFile(problems, owner, repo, tree, branchName)
