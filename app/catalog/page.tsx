@@ -91,7 +91,7 @@ function ArtifactCard({ item }: { item: CatalogItem }) {
   const Icon = cfg.icon
 
   return (
-    <Link href={`/laudos/${item.id}`} className="group block">
+    <Link href={`/catalog/${item.id}`} className="group block">
       <div className="bg-card rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 border border-border hover:border-primary/30">
         <div className={cn('relative h-36 bg-gradient-to-br flex items-center justify-center', cfg.gradient)}>
           <span className={cn('absolute top-3 left-3 px-2.5 py-1 rounded-md text-xs font-semibold backdrop-blur-sm', cfg.badge)}>
