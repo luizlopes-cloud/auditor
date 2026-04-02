@@ -218,18 +218,21 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Persistir laudo ────────────────────────────────────────────────────
+    const laudoInsert: Record<string, unknown> = {
+      artifact_id: artifact.id,
+      resultado: laudoResult.resultado,
+      score: laudoResult.score,
+      resumo: laudoResult.resumo,
+      checks: laudoResult.checks as unknown as import('@/types/database').Json,
+      model_used: laudoResult.model_used,
+      tempo_analise_ms,
+    }
+    // Só inclui version se for nova versão (evita erro se migration não rodou)
+    if (version > 1) laudoInsert.version = version
+
     const { data: laudo, error: laudoError } = await supabase
       .from('laudos')
-      .insert({
-        artifact_id: artifact.id,
-        resultado: laudoResult.resultado,
-        score: laudoResult.score,
-        resumo: laudoResult.resumo,
-        checks: laudoResult.checks as unknown as import('@/types/database').Json,
-        model_used: laudoResult.model_used,
-        tempo_analise_ms,
-        version,
-      } as any)
+      .insert(laudoInsert as any)
       .select()
       .single()
 

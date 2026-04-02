@@ -55,18 +55,20 @@ export async function POST(
     const laudoResult = await analyzeArtifact(analysisContext)
     const tempo_analise_ms = Date.now() - start
 
+    const insertData: Record<string, unknown> = {
+      artifact_id: artifact.id,
+      resultado: laudoResult.resultado,
+      score: laudoResult.score,
+      resumo: laudoResult.resumo,
+      checks: laudoResult.checks as unknown as import('@/types/database').Json,
+      model_used: laudoResult.model_used,
+      tempo_analise_ms,
+    }
+    if (nextVersion > 1) insertData.version = nextVersion
+
     const { data: newLaudo, error } = await supabase
       .from('laudos')
-      .insert({
-        artifact_id: artifact.id,
-        resultado: laudoResult.resultado,
-        score: laudoResult.score,
-        resumo: laudoResult.resumo,
-        checks: laudoResult.checks as unknown as import('@/types/database').Json,
-        model_used: laudoResult.model_used,
-        tempo_analise_ms,
-        version: nextVersion,
-      } as any)
+      .insert(insertData as any)
       .select()
       .single()
 
