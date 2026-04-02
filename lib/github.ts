@@ -75,21 +75,20 @@ export async function fetchPRContent(url: string): Promise<RepoContent & { prTit
     content: `# PR #${pullNumber}: ${pr.title}\n\n${pr.body ?? 'Sem descrição'}\n\n**Branch:** ${pr.head?.ref} → ${pr.base?.ref}\n**Autor:** ${pr.user?.login}\n**Status:** ${pr.state}\n**Arquivos alterados:** ${files.length}`,
   })
 
-  // Adiciona diff/patch de cada arquivo
-  for (const file of files.slice(0, 15)) {
+  // Adiciona diff/patch de cada arquivo (limitado para não estourar contexto)
+  for (const file of files.slice(0, 10)) {
     const patch = file.patch ?? ''
     let content = `// ${file.filename} (${file.status}: +${file.additions} -${file.deletions})\n`
     if (patch) {
-      content += patch.slice(0, 4000)
-    }
-    // Para arquivos novos ou modificados importantes, busca conteúdo completo
-    if ((file.status === 'added' || file.status === 'modified') && scoreFile(file.filename) > 3) {
-      const fullContent = await fetchFileContent(owner, repo, file.filename)
-      if (fullContent) {
-        content += `\n\n// Conteúdo completo:\n${fullContent.slice(0, 5000)}`
-      }
+      content += patch.slice(0, 2000)
     }
     mainFiles.push({ path: file.filename, content })
+  }
+
+  // Lista arquivos restantes sem patch
+  if (files.length > 10) {
+    const rest = files.slice(10).map((f: any) => `- ${f.filename} (${f.status}: +${f.additions} -${f.deletions})`).join('\n')
+    mainFiles.push({ path: '__MORE_FILES__.md', content: `Mais ${files.length - 10} arquivos alterados:\n${rest}` })
   }
 
   return {
