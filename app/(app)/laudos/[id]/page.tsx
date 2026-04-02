@@ -59,7 +59,10 @@ export default function LaudoDetailPage() {
   const [similares, setSimilares] = useState<{ id: string; motivo: string; recomendacao: string }[] | null>(null)
   const [loadingSimilares, setLoadingSimilares] = useState(false)
 
-  // Recommended actions
+  // Funcionalidades deep dive
+  const [funcionalidades, setFuncionalidades] = useState<any[] | null>(null)
+  const [loadingFunc, setLoadingFunc] = useState(false)
+
   // Comments
   const [comentarios, setComentarios] = useState<Comentario[]>([])
   const [loadingComentarios, setLoadingComentarios] = useState(false)
@@ -444,6 +447,86 @@ export default function LaudoDetailPage() {
                 Cancelar
               </button>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mapeamento de funcionalidades */}
+      <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground">Funcionalidades do artefato</h2>
+        </div>
+        {funcionalidades === null && !loadingFunc && (
+          <div className="flex flex-col items-center gap-3 py-4">
+            <p className="text-sm text-muted-foreground/70 text-center">Mapeamento profundo de todas as features, telas, filtros, formulários e integrações.</p>
+            <button
+              onClick={() => {
+                setLoadingFunc(true)
+                fetch(`/api/laudos/${id}/funcionalidades`, { method: 'POST' })
+                  .then(r => r.json())
+                  .then(d => setFuncionalidades(d.funcionalidades ?? []))
+                  .catch(() => setFuncionalidades([]))
+                  .finally(() => setLoadingFunc(false))
+              }}
+              className="flex items-center gap-2 px-5 py-2.5 bg-primary/10 border border-primary/30 text-primary text-sm font-medium rounded-lg hover:bg-primary/20 hover:border-primary/50 transition-all"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              Mapear funcionalidades
+            </button>
+          </div>
+        )}
+        {loadingFunc && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
+            <div className="h-4 w-4 rounded-full border-2 border-border/40 border-t-primary animate-spin" />
+            Analisando funcionalidades em profundidade...
+          </div>
+        )}
+        {funcionalidades !== null && funcionalidades.length === 0 && (
+          <p className="text-sm text-muted-foreground/60">Nenhuma funcionalidade mapeada.</p>
+        )}
+        {funcionalidades !== null && funcionalidades.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">{funcionalidades.length} funcionalidades encontradas</p>
+            {funcionalidades.map((f: any, i: number) => {
+              const tipoColors: Record<string, string> = {
+                tela: 'bg-blue-900/50 text-blue-300',
+                filtro: 'bg-violet-900/50 text-violet-300',
+                formulario: 'bg-emerald-900/50 text-emerald-300',
+                tabela: 'bg-cyan-900/50 text-cyan-300',
+                grafico: 'bg-pink-900/50 text-pink-300',
+                botao: 'bg-orange-900/50 text-orange-300',
+                modal: 'bg-amber-900/50 text-amber-300',
+                navegacao: 'bg-slate-700/50 text-slate-300',
+                integracao: 'bg-indigo-900/50 text-indigo-300',
+                auth: 'bg-red-900/50 text-red-300',
+              }
+              const statusColors: Record<string, string> = {
+                completa: 'text-emerald-400',
+                parcial: 'text-amber-400',
+                placeholder: 'text-red-400',
+                nao_verificavel: 'text-muted-foreground',
+              }
+              const statusLabels: Record<string, string> = {
+                completa: 'Completa',
+                parcial: 'Parcial',
+                placeholder: 'Placeholder',
+                nao_verificavel: 'Não verificável',
+              }
+              return (
+                <div key={i} className="rounded-lg border border-border/50 p-4 space-y-2">
+                  <div className="flex items-start gap-2 flex-wrap">
+                    <span className={`shrink-0 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${tipoColors[f.tipo] ?? 'bg-muted text-muted-foreground'}`}>{f.tipo}</span>
+                    <p className="text-sm font-medium text-foreground flex-1">{f.nome}</p>
+                    <span className={`text-xs font-medium ${statusColors[f.status] ?? 'text-muted-foreground'}`}>{statusLabels[f.status] ?? f.status}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{f.descricao}</p>
+                  {f.detalhes_tecnicos && (
+                    <p className="text-xs text-muted-foreground/50 font-mono">{f.detalhes_tecnicos}</p>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
