@@ -157,7 +157,10 @@ export async function POST(req: NextRequest) {
           }
         } else {
           artifactContent = fetched.content
-          artifactName = name?.trim() || fetched.title || 'Aplicação'
+          // Extrai nome do subdomínio Lovable (preview--nome.lovable.app → nome)
+          const lovableNameMatch = cleanUrl.match(/(?:preview--)?([a-z0-9-]+)\.lovable\.app/)
+          const lovableName = lovableNameMatch?.[1]?.replace(/-/g, ' ')?.replace(/\b\w/g, (c: string) => c.toUpperCase())
+          artifactName = name?.trim() || (lovableName && lovableName !== 'Preview') ? lovableName! : fetched.title || 'Aplicação'
           analysisContext = `## Artefato: ${artifactName}\n**URL:** ${cleanUrl}\n**Tipo detectado:** ${urlType}\n\n${fetched.content}`
           if (description) analysisContext = `**Objetivo declarado:** ${description}\n\n` + analysisContext
           if (urlType === 'lovable' || urlType === 'vercel') semGithub = true

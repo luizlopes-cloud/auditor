@@ -122,6 +122,7 @@ export default async function LaudosPage({ searchParams }: PageProps) {
                 submittedBy={artifact.submitted_by}
                 createdAt={laudo.created_at ?? ''}
                 previewUrl={(artifact as any).preview_url}
+                sourceUrl={(artifact as any).source_url}
               />
             )
           })}

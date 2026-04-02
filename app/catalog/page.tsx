@@ -95,8 +95,16 @@ function ArtifactCard({ item }: { item: CatalogItem }) {
     <Link href={`/catalog/${item.id}`} className="group block">
       <div className="bg-card rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 border border-border hover:border-primary/30">
         <div className={cn('relative h-36 bg-gradient-to-br flex items-center justify-center overflow-hidden', cfg.gradient)}>
-          {(art as any).preview_url ? (
-            <img src={(art as any).preview_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80" />
+          {(() => {
+            const thumbUrl = art.source_url && !art.source_url.includes('__lovable_token') && !art.source_url.includes('lovable.dev/')
+              ? `https://image.thum.io/get/width/600/crop/400/${art.source_url}` : null
+            return thumbUrl ?? (art as any).preview_url
+          })() ? (
+            <img src={(() => {
+              const thumbUrl = art.source_url && !art.source_url.includes('__lovable_token') && !art.source_url.includes('lovable.dev/')
+                ? `https://image.thum.io/get/width/600/crop/400/${art.source_url}` : null
+              return thumbUrl ?? (art as any).preview_url
+            })()} alt="" className="absolute inset-0 w-full h-full object-cover opacity-80" loading="lazy" />
           ) : (
             <Icon className="h-12 w-12 text-white/20" />
           )}
