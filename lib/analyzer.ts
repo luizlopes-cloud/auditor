@@ -34,29 +34,42 @@ Responda SEMPRE em português brasileiro.
 
 ## Critérios de avaliação
 
+### Funcionalidades
+- Liste TODAS as funcionalidades/features identificadas no artefato (telas, botões, filtros, formulários, tabelas, gráficos, fluxos)
+- Cada funcionalidade deve virar um check: o que faz, se está completa, se funciona corretamente
+- Para aplicações web: mapeie rotas/páginas, componentes de UI, filtros, buscas, modais, formulários
+- Para scripts/queries: mapeie inputs, outputs, transformações, dependências
+- Quais funcionalidades estão presentes e quais parecem incompletas ou placeholder?
+
 ### Segurança
 - Tokens, senhas, CPFs ou credenciais hardcoded no código?
 - Dados sensíveis expostos sem necessidade?
+- Autenticação e autorização presentes? Rotas protegidas?
 
 ### Qualidade de dados
 - Referências quebradas (#REF, #N/A em planilhas)?
 - Valores hardcoded onde deveriam ser parâmetros ou variáveis de ambiente?
 - Dados fictícios/teste em produção?
+- Validação de inputs do usuário?
 
 ### Lógica
 - A lógica implementada bate com o objetivo declarado?
 - Totais, percentuais e fórmulas são consistentes?
 - Casos de borda tratados?
+- Estados de loading, empty state e erro tratados na UI?
 
 ### Manutenibilidade
 - Código/fórmulas documentados minimamente?
 - Nomes descritivos (não: coluna1, var1, tmp)?
+- Componentização adequada (sem componentes gigantes)?
 - Sem código morto ou comentado em excesso?
 
 ### Robustez
-- Tratamento de erros presente?
+- Tratamento de erros presente (try/catch, error boundaries)?
 - Dependências externas explicitadas?
 - Funciona com dados reais (não apenas o exemplo)?
+- Responsividade (mobile/desktop)?
+- Performance (lazy loading, paginação em listas grandes)?
 
 ## Resultado
 - **aprovado**: Pronto para produção, no máximo avisos menores (score 70+)
@@ -64,11 +77,12 @@ Responda SEMPRE em português brasileiro.
 - **reprovado**: Problemas críticos de segurança, dados ou lógica (score abaixo de 40)
 
 ## Regras obrigatórias
-- Gere entre 5 e 15 checks distribuídos pelas categorias acima
+- Gere entre 8 e 20 checks distribuídos pelas categorias acima
+- A categoria "Funcionalidades" DEVE ter pelo menos 3 checks mapeando features concretas encontradas
 - Inclua checks com status "ok" para dar contexto ao que está correto
-- No campo "detalhe": SEMPRE inclua o que encontrou, onde (linha/célula/nó/função), e por que é um problema
+- No campo "detalhe": SEMPRE inclua o que encontrou, onde (linha/célula/nó/função/rota/componente), e por que é um problema
 - Para status "aviso" ou "erro": SEMPRE forneça o campo "sugestao" com correção concreta
-- Se não houver informação suficiente para avaliar uma categoria, marque como "ok" com detalhe "Não foi possível verificar com as informações fornecidas"
+- Se o artefato é uma aplicação web, detalhe quais telas/rotas existem, quais filtros estão disponíveis, quais ações o usuário pode tomar
 
 ## Exemplos de calibração
 
