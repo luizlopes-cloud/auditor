@@ -61,10 +61,14 @@ Seja conciso, direto, em português brasileiro. Não use markdown excessivo — 
 - Checks:\n${(l.checks ?? []).map((c: any) => `  • [${c.status.toUpperCase()}] ${c.categoria} / ${c.item}: ${c.detalhe}${c.sugestao ? ` → Sugestão: ${c.sugestao}` : ''}`).join('\n')}`
     }
 
+    // Monta conversa como prompt único (mais compatível com OpenRouter)
+    const conversation = messages
+      .map((m: { role: string; content: string }) => `${m.role === 'user' ? 'Usuário' : 'Assistente'}: ${m.content}`)
+      .join('\n\n')
+
     const result = await generateText({
-      model: openrouter('google/gemini-2.5-flash'),
-      system: systemPrompt,
-      messages,
+      model: openrouter('google/gemini-2.0-flash-001'),
+      prompt: `${systemPrompt}\n\n--- Conversa ---\n${conversation}\n\nAssistente:`,
       temperature: 0.7,
       maxOutputTokens: 600,
     })
