@@ -200,9 +200,15 @@ async function fetchDeployedPage(url: string, type: UrlType): Promise<FetchedUrl
     )
   }
 
-  // Extrai título
+  // Extrai título (og:title > h1 > title, filtra genéricos)
+  const ogTitleMatch = html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
+    ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i)
+  const h1Match = html.match(/<h1[^>]*>([^<]+)<\/h1>/i)
   const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
-  const title = titleMatch ? titleMatch[1].trim() : url
+  const rawTitle = (ogTitleMatch?.[1] ?? h1Match?.[1] ?? titleMatch?.[1] ?? '').trim()
+  // Filtra títulos genéricos (UUIDs, "Vite App", "React App", IDs hex)
+  const isGenericTitle = !rawTitle || /^[a-f0-9-]{20,}$/i.test(rawTitle) || /^(Vite|React|Next)\s*(App|[\+])/i.test(rawTitle) || rawTitle.length < 3
+  const title = isGenericTitle ? '' : rawTitle
 
   // Tenta detectar link GitHub no HTML
   const githubMatch = html.match(/https:\/\/github\.com\/[\w.-]+\/[\w.-]+/g)

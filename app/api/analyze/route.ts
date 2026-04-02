@@ -8,7 +8,10 @@ import { detectUrlType, fetchUrlContent, detectEditorUrl } from '@/lib/url-fetch
 function extractLovableName(url: string): string | null {
   const m = url.match(/(?:preview--)?([a-z0-9][a-z0-9-]+)\.lovable\.app/)
   if (!m || m[1] === 'preview') return null
-  return m[1].replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+  const raw = m[1]
+  // Ignora se parece UUID (8-4-4-4-12)
+  if (/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(raw)) return null
+  return raw.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
 }
 
 export async function POST(req: NextRequest) {
