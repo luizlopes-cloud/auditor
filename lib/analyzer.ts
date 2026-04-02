@@ -136,7 +136,16 @@ async function runAnalysis(context: string, model: string): Promise<LaudoResult>
     temperature: 0,
   })
   if (!result.experimental_output) throw new Error(`Modelo ${model} não retornou output estruturado`)
-  return result.experimental_output
+
+  // Recalcula score a partir dos checks (não confia no modelo)
+  const output = result.experimental_output
+  const erros = output.checks.filter(c => c.status === 'erro').length
+  const avisos = output.checks.filter(c => c.status === 'aviso').length
+  const calculatedScore = Math.max(0, Math.min(100, 100 - (erros * 10) - (avisos * 3)))
+  output.score = calculatedScore
+  output.resultado = calculatedScore >= 75 ? 'aprovado' : calculatedScore >= 40 ? 'ajustes_necessarios' : 'reprovado'
+
+  return output
 }
 
 export async function analyzeArtifact(context: string): Promise<LaudoResult & { model_used: string }> {
