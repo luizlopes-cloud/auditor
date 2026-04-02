@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { AnalysisLoading } from '@/components/AnalysisLoading'
 import { ScoreBadge } from '@/components/ScoreBadge'
 import { cn } from '@/lib/utils'
-import { Link2, Code2, Upload, ArrowRight, GitBranch } from 'lucide-react'
+import { Link2, Code2, Upload, ArrowRight, GitBranch, AlertTriangle } from 'lucide-react'
+import Image from 'next/image'
 
 function normalizeUrl(u: string): string {
   const t = u.trim()
@@ -53,11 +54,20 @@ export default function AuditarPage() {
     if (!u) return ''
     try {
       const host = new URL(normalizeUrl(u)).hostname.toLowerCase()
+      if (host === 'lovable.dev' || host === 'www.lovable.dev') return ''
       if (host === 'github.com') return 'GitHub detectado — buscando repositório ou arquivo...'
       if (host.endsWith('.lovable.app') || host.endsWith('.lovable.dev')) return 'Lovable detectado — buscando código...'
       if (host.endsWith('.vercel.app')) return 'Vercel detectado — buscando aplicação...'
       return 'Link externo — buscando página...'
     } catch { return '' }
+  }
+
+  const isLovableEditor = (u: string): boolean => {
+    if (!u) return false
+    try {
+      const host = new URL(normalizeUrl(u)).hostname.toLowerCase()
+      return host === 'lovable.dev' || host === 'www.lovable.dev'
+    } catch { return false }
   }
 
   const handleNewVersion = async () => {
@@ -145,6 +155,7 @@ export default function AuditarPage() {
   }
 
   const urlHint = detectUrlHint(url)
+  const lovableEditor = isLovableEditor(url)
 
   const inputCls = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-colors'
 
@@ -227,9 +238,48 @@ export default function AuditarPage() {
                       required
                       className={inputCls}
                     />
-                    {urlHint && (
+                    {lovableEditor ? (
+                      <div className="mt-3 rounded-lg border border-amber-700/40 bg-amber-950/20 p-4 space-y-3">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium text-amber-300">Este é o link do editor, não da aplicação publicada.</p>
+                            <p className="text-xs text-amber-300/80">Para analisar, você precisa do link da app deployada (ex: <span className="font-mono">meu-projeto.lovable.app</span>).</p>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-amber-300/70 uppercase tracking-wide">Como encontrar o link correto:</p>
+                          <div className="space-y-2 text-xs text-amber-300/80">
+                            <p><span className="font-medium text-amber-300">1.</span> No editor, clique em <span className="font-medium text-amber-300">Publish</span> na barra superior:</p>
+                          </div>
+                          <div className="rounded-md overflow-hidden border border-amber-700/30">
+                            <Image
+                              src="/guide-lovable-toolbar.jpg"
+                              alt="Barra do Lovable com botão Publish"
+                              width={300}
+                              height={60}
+                              className="w-full h-auto"
+                              unoptimized
+                            />
+                          </div>
+                          <div className="text-xs text-amber-300/80">
+                            <p><span className="font-medium text-amber-300">2.</span> No painel que abrir, clique em <span className="font-medium text-amber-300">Share preview</span> e copie o link da app:</p>
+                          </div>
+                          <div className="rounded-md overflow-hidden border border-amber-700/30">
+                            <Image
+                              src="/guide-lovable-share.jpg"
+                              alt="Painel Share do Lovable com opção Share preview"
+                              width={400}
+                              height={280}
+                              className="w-full h-auto"
+                              unoptimized
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ) : urlHint ? (
                       <p className="mt-1.5 text-xs text-primary">{urlHint}</p>
-                    )}
+                    ) : null}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-foreground/80 mb-1.5">
