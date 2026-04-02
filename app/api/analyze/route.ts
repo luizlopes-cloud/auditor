@@ -33,35 +33,46 @@ export async function POST(req: NextRequest) {
       const editorError = detectEditorUrl(url)
       if (editorError) return NextResponse.json({ error: editorError }, { status: 400 })
 
-      const urlType = detectUrlType(url)
+      // Remove tokens de auth da URL antes de qualquer uso (nunca armazenar)
+      const cleanUrl = (() => {
+        try {
+          const u = new URL(url)
+          u.searchParams.delete('__lovable_token')
+          u.searchParams.delete('magic_link')
+          u.searchParams.delete('token')
+          u.searchParams.delete('access_token')
+          return u.toString()
+        } catch { return url }
+      })()
+
+      const urlType = detectUrlType(cleanUrl)
 
       if (urlType === 'github-repo' || urlType === 'github-file') {
         // GitHub direto
-        const repoContent = await fetchRepoContent(url)
-        artifactName = name?.trim() || parseGitHubUrl(url)?.repo || 'Repositório GitHub'
+        const repoContent = await fetchRepoContent(cleanUrl)
+        artifactName = name?.trim() || parseGitHubUrl(cleanUrl)?.repo || 'Repositório GitHub'
         artifactType = 'script'
         artifactSource = 'github'
-        artifactGithubUrl = url
+        artifactGithubUrl = cleanUrl
         artifactContent = repoContent.mainFiles.map(f => `// ${f.path}\n${f.content}`).join('\n\n')
 
         analysisContext = buildAnalysisContext(
           artifactName,
           artifactContent,
           description ?? '',
-          { url, language: repoContent.language, readme: repoContent.readme }
+          { url: cleanUrl, language: repoContent.language, readme: repoContent.readme }
         )
         if (repoContent.packageJson) {
           analysisContext += `\n### Dependências\n\`\`\`\n${repoContent.packageJson.slice(0, 2000)}\n\`\`\``
         }
       } else {
         // Lovable / Vercel / externo
-        const fetched = await fetchUrlContent(url)
-        artifactSourceUrl = url
+        const fetched = await fetchUrlContent(cleanUrl)
+        artifactSourceUrl = cleanUrl
         artifactSource = 'url'
 
         const effectiveGithubUrl = github_url?.trim() || fetched.detectedGithubUrl
         if (effectiveGithubUrl) {
-          // Priorizar análise do código-fonte GitHub
           try {
             const repoContent = await fetchRepoContent(effectiveGithubUrl)
             artifactGithubUrl = effectiveGithubUrl
@@ -76,20 +87,19 @@ export async function POST(req: NextRequest) {
               description ?? '',
               { url: effectiveGithubUrl, language: repoContent.language, readme: repoContent.readme }
             )
-            analysisContext += `\n\n**URL do artefato deployado:** ${url}`
+            analysisContext += `\n\n**URL do artefato deployado:** ${cleanUrl}`
             if (repoContent.packageJson) {
               analysisContext += `\n### Dependências\n\`\`\`\n${repoContent.packageJson.slice(0, 2000)}\n\`\`\``
             }
           } catch {
-            // Fallback para HTML
             artifactContent = fetched.content
             artifactName = name?.trim() || fetched.title || 'Aplicação'
-            analysisContext = `## Artefato: ${artifactName}\n**URL:** ${url}\n**Tipo detectado:** ${urlType}\n${fetched.content}`
+            analysisContext = `## Artefato: ${artifactName}\n**URL:** ${cleanUrl}\n**Tipo detectado:** ${urlType}\n${fetched.content}`
           }
         } else {
           artifactContent = fetched.content
           artifactName = name?.trim() || fetched.title || 'Aplicação'
-          analysisContext = `## Artefato: ${artifactName}\n**URL:** ${url}\n**Tipo detectado:** ${urlType}\n\n${fetched.content}`
+          analysisContext = `## Artefato: ${artifactName}\n**URL:** ${cleanUrl}\n**Tipo detectado:** ${urlType}\n\n${fetched.content}`
           if (description) analysisContext = `**Objetivo declarado:** ${description}\n\n` + analysisContext
         }
       }

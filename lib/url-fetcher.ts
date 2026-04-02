@@ -8,15 +8,6 @@ export function detectEditorUrl(url: string): string | null {
   const host = parsed.hostname.toLowerCase()
   const path = parsed.pathname.toLowerCase()
 
-  // Lovable token de autenticação — nunca armazenar
-  if (parsed.searchParams.has('__lovable_token')) {
-    return 'Este link contém um token de autenticação privado e não pode ser analisado. Use o link público da aplicação (ex: meu-projeto.lovable.app), sem parâmetros de token.'
-  }
-
-  // Lovable preview (preview--*.lovable.app) — não é a versão pública
-  if (host.endsWith('.lovable.app') && host.startsWith('preview--')) {
-    return 'Este é um link de preview privado do Lovable. Para analisar, use o link público da aplicação publicada (sem "preview--" no início).'
-  }
 
   // Lovable editor: lovable.dev/projects/... ou lovable.dev sem subdomínio
   if (host === 'lovable.dev' || host === 'www.lovable.dev') {
