@@ -76,8 +76,8 @@ export async function POST(
         return NextResponse.json({ error: 'Conteúdo insuficiente para criar repositório' }, { status: 400 })
       }
 
-      // Cria repo na org
-      const createRes = await fetch(`${GITHUB_API}/orgs/${TARGET_ORG}/repos`, {
+      // Cria repo (conta de usuário, não org)
+      const createRes = await fetch(`${GITHUB_API}/user/repos`, {
         method: 'POST',
         headers: { ...githubHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -101,7 +101,7 @@ export async function POST(
       const filePath = `src/${fileName}${ext}`
 
       // Cria arquivo via Contents API
-      const pushRes = await fetch(`${GITHUB_API}/repos/${TARGET_ORG}/${name}/contents/${filePath}`, {
+      const pushRes = await fetch(`${GITHUB_API}/repos/${repo.full_name}/contents/${filePath}`, {
         method: 'PUT',
         headers: { ...githubHeaders(), 'Content-Type': 'application/json' },
         body: JSON.stringify({

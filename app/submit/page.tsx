@@ -18,7 +18,7 @@ function normalizeUrl(u: string): string {
 
 type Mode = 'url' | 'code' | 'file'
 
-function GithubActions({ artifactId, onResubmit }: { artifactId?: string; onResubmit: () => void }) {
+function GithubActions({ artifactId, onResubmit, isLovable }: { artifactId?: string; onResubmit: () => void; isLovable?: boolean }) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any>(null)
 
@@ -44,14 +44,18 @@ function GithubActions({ artifactId, onResubmit }: { artifactId?: string; onResu
       </div>
       <p className="text-xs text-amber-300/70">Conecte ao GitHub para homologação completa:</p>
       <div className="flex flex-wrap gap-2">
-        <button onClick={() => run('lovable_link')} disabled={loading}
-          className="px-3 py-2 bg-amber-700/60 text-amber-100 text-xs font-medium rounded-lg hover:bg-amber-600/60 disabled:opacity-50 transition-colors">
-          Como conectar no Lovable
-        </button>
-        <button onClick={() => run('create')} disabled={loading}
-          className="px-3 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
-          {loading ? 'Criando...' : 'Criar repositório na org'}
-        </button>
+        {isLovable && (
+          <button onClick={() => run('lovable_link')} disabled={loading}
+            className="px-3 py-2 bg-amber-700/60 text-amber-100 text-xs font-medium rounded-lg hover:bg-amber-600/60 disabled:opacity-50 transition-colors">
+            Como conectar no Lovable
+          </button>
+        )}
+        {!isLovable && (
+          <button onClick={() => run('create')} disabled={loading}
+            className="px-3 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+            {loading ? 'Criando...' : 'Criar repositório'}
+          </button>
+        )}
         <button onClick={onResubmit}
           className="px-3 py-2 border border-amber-700/40 text-amber-300 text-xs font-medium rounded-lg hover:bg-amber-950/40 transition-colors">
           Re-submeter com GitHub
@@ -217,7 +221,7 @@ export default function SubmitPage() {
                 </div>
               )}
               {result.sem_github && (
-                <GithubActions artifactId={result.artifact_id} onResubmit={() => setResult(null)} />
+                <GithubActions artifactId={result.artifact_id} onResubmit={() => setResult(null)} isLovable={url.includes('lovable')} />
               )}
               <div className="flex flex-col gap-3">
                 <button
