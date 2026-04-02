@@ -25,7 +25,7 @@ async function getDashboardData() {
   const [{ data: recentLaudos }, { data: allLaudos }] = await Promise.all([
     supabase
       .from('laudos')
-      .select('id, resultado, score, resumo, created_at, artifacts(id, name, type, submitted_by)')
+      .select('id, resultado, score, resumo, created_at, artifacts(id, name, type, submitted_by, preview_url)')
       .order('created_at', { ascending: false })
       .limit(6),
     supabase
@@ -228,6 +228,7 @@ export default async function DashboardPage() {
                   resumo={laudo.resumo}
                   submittedBy={artifact.submitted_by}
                   createdAt={laudo.created_at ?? ''}
+                  previewUrl={(artifact as any).preview_url}
                 />
               )
             })}

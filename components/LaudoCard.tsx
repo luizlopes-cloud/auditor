@@ -28,9 +28,10 @@ interface LaudoCardProps {
   resumo: string
   submittedBy: string
   createdAt: string
+  previewUrl?: string
 }
 
-export function LaudoCard({ id, artifactId, name, type, resultado, score, resumo, submittedBy, createdAt }: LaudoCardProps) {
+export function LaudoCard({ id, artifactId, name, type, resultado, score, resumo, submittedBy, createdAt, previewUrl }: LaudoCardProps) {
   const router = useRouter()
   const Icon = typeIcon[type] ?? Globe
   const date = new Date(createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -64,7 +65,12 @@ export function LaudoCard({ id, artifactId, name, type, resultado, score, resumo
   }
 
   return (
-    <div className="group bg-card rounded-xl border border-border shadow-sm hover:border-primary/30 hover:shadow-md transition-all">
+    <div className="group bg-card rounded-xl border border-border shadow-sm hover:border-primary/30 hover:shadow-md transition-all overflow-hidden">
+      {previewUrl && (
+        <Link href={`/laudos/${id}`} className="block h-32 bg-muted overflow-hidden">
+          <img src={previewUrl} alt="" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+        </Link>
+      )}
       <Link href={`/laudos/${id}`} className="block p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
