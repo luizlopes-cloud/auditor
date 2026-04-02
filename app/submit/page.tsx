@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AnalysisLoading } from '@/components/AnalysisLoading'
 import { ScoreBadge } from '@/components/ScoreBadge'
 import { cn } from '@/lib/utils'
-import { Link2, Code2, Upload, ArrowRight, GitBranch, AlertTriangle } from 'lucide-react'
-import Image from 'next/image'
+import { Link2, Code2, Upload, ArrowRight, GitBranch } from 'lucide-react'
 import { FloatingAssistant } from '@/components/FloatingAssistant'
 
 function normalizeUrl(u: string): string {
@@ -19,11 +18,11 @@ type Mode = 'url' | 'code' | 'file'
 
 const MODES = [
   { id: 'url' as Mode, label: 'URL', icon: Link2 },
-  { id: 'code' as Mode, label: 'Colar código', icon: Code2 },
-  { id: 'file' as Mode, label: 'Upload arquivo', icon: Upload },
+  { id: 'code' as Mode, label: 'Código', icon: Code2 },
+  { id: 'file' as Mode, label: 'Arquivo', icon: Upload },
 ]
 
-export default function AuditarPage() {
+export default function SubmitPage() {
   const router = useRouter()
   const [mode, setMode] = useState<Mode>('url')
   const [loading, setLoading] = useState(false)
@@ -33,14 +32,12 @@ export default function AuditarPage() {
   const [duplicate, setDuplicate] = useState<{ laudo_id: string; artifact_id?: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const codeFileRef = useRef<HTMLInputElement>(null)
-  const [dragOver, setDragOver] = useState(false)
 
   const [url, setUrl] = useState('')
   const [githubUrl, setGithubUrl] = useState('')
   const [code, setCode] = useState('')
   const [fileName, setFileName] = useState('')
   const [fileContent, setFileContent] = useState('')
-  const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [submittedBy, setSubmittedBy] = useState('')
 
@@ -59,31 +56,10 @@ export default function AuditarPage() {
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
-    setDragOver(false)
     const file = e.dataTransfer.files?.[0]
     if (!file) return
     setMode('file')
     loadFile(file)
-  }
-
-  const detectUrlHint = (u: string): string => {
-    if (!u) return ''
-    try {
-      const host = new URL(normalizeUrl(u)).hostname.toLowerCase()
-      if (host === 'lovable.dev' || host === 'www.lovable.dev') return ''
-      if (host === 'github.com') return 'GitHub detectado — buscando repositório ou arquivo...'
-      if (host.endsWith('.lovable.app') || host.endsWith('.lovable.dev')) return 'Lovable detectado — buscando código...'
-      if (host.endsWith('.vercel.app')) return 'Vercel detectado — buscando aplicação...'
-      return 'Link externo — buscando página...'
-    } catch { return '' }
-  }
-
-  const isLovableEditor = (u: string): boolean => {
-    if (!u) return false
-    try {
-      const host = new URL(normalizeUrl(u)).hostname.toLowerCase()
-      return host === 'lovable.dev' || host === 'www.lovable.dev'
-    } catch { return false }
   }
 
   const handleNewVersion = async () => {
@@ -91,20 +67,14 @@ export default function AuditarPage() {
     setDuplicate(null)
     setLoading(true)
     setLoadingStep(0)
-
     const body: Record<string, string | boolean> = {
-      mode, name, description, submitted_by: submittedBy, force: true,
+      mode, description, submitted_by: submittedBy, force: true,
     }
     if (mode === 'url') { body.url = normalizeUrl(url); if (githubUrl) body.github_url = normalizeUrl(githubUrl) }
     else if (mode === 'code') { body.code = code; if (fileName) body.file_name = fileName }
     else { body.file_name = fileName; body.file_content = fileContent }
-
     try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
+      const res = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       setLoadingStep(2)
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Erro desconhecido'); return }
@@ -121,13 +91,7 @@ export default function AuditarPage() {
     setLoading(true)
     setLoadingStep(0)
 
-    const body: Record<string, string> = {
-      mode,
-      name,
-      description,
-      submitted_by: submittedBy,
-    }
-
+    const body: Record<string, string> = { mode, description, submitted_by: submittedBy }
     if (mode === 'url') {
       body.url = normalizeUrl(url)
       if (githubUrl) body.github_url = normalizeUrl(githubUrl)
@@ -141,45 +105,23 @@ export default function AuditarPage() {
     }
 
     try {
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-
+      const res = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       setLoadingStep(2)
       const data = await res.json()
-
-      if (res.status === 409) {
-        setDuplicate({ laudo_id: data.existing_laudo_id, artifact_id: data.existing_artifact_id })
-        setLoading(false)
-        return
-      }
-
-      if (!res.ok) {
-        setError(data.error ?? 'Erro desconhecido')
-        setLoading(false)
-        return
-      }
-
+      if (res.status === 409) { setDuplicate({ laudo_id: data.existing_laudo_id, artifact_id: data.existing_artifact_id }); setLoading(false); return }
+      if (!res.ok) { setError(data.error ?? 'Erro desconhecido'); setLoading(false); return }
       setResult(data)
-    } catch {
-      setError('Erro de conexão. Tente novamente.')
-    } finally {
-      setLoading(false)
-    }
+    } catch { setError('Erro de conexão. Tente novamente.') }
+    finally { setLoading(false) }
   }
-
-  const urlHint = detectUrlHint(url)
-  const lovableEditor = isLovableEditor(url)
 
   const inputCls = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition-colors'
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <div className="mb-8">
+    <div className="p-8 max-w-xl mx-auto">
+      <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold text-foreground">Auditar artefato</h1>
-        <p className="text-muted-foreground mt-1">Envie um artefato para homologação automática via IA</p>
+        <p className="text-muted-foreground text-sm mt-1">Envie um artefato para homologação automática via IA</p>
       </div>
 
       {loading ? (
@@ -188,318 +130,102 @@ export default function AuditarPage() {
         </div>
       ) : result ? (
         <div className="bg-card rounded-xl border border-border shadow-sm p-6 space-y-4 animate-in fade-in duration-500">
-          <ScoreBadge
-            resultado={result.resultado as 'aprovado' | 'ajustes_necessarios' | 'reprovado'}
-            score={result.score}
-            showBar
-            size="lg"
-          />
+          <ScoreBadge resultado={result.resultado as 'aprovado' | 'ajustes_necessarios' | 'reprovado'} score={result.score} showBar size="lg" />
           {result.sem_github && (
-            <div className="rounded-lg border border-amber-700/40 bg-amber-950/20 px-4 py-3 text-sm text-amber-300 space-y-2">
-              <p className="font-medium">Análise baseada em HTML + JS compilado</p>
-              <p className="text-xs text-amber-300/80">Sem o código-fonte, o laudo pode ser menos preciso. Para re-analisar com código completo:</p>
-              <ol className="text-xs text-amber-300/80 space-y-1 pl-3">
-                <li><span className="font-medium text-amber-300">1.</span> No Lovable, abra as configurações do projeto → <span className="font-mono bg-amber-900/40 px-1 rounded">Settings</span></li>
-                <li><span className="font-medium text-amber-300">2.</span> Conecte sua conta GitHub e publique o repositório</li>
-                <li><span className="font-medium text-amber-300">3.</span> Volte aqui, cole o link do GitHub e clique em <span className="font-medium text-amber-300">Criar nova versão</span></li>
-              </ol>
-            </div>
+            <p className="text-xs text-amber-400/80">Análise baseada em HTML compilado. Para laudo mais preciso, publique o código no GitHub.</p>
           )}
-          <p className="text-muted-foreground text-sm">Laudo gerado com sucesso.</p>
           <div className="flex gap-3 flex-wrap">
-            <button
-              onClick={() => router.push(`/laudos/${result.laudo_id}`)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Ver laudo completo
-              <ArrowRight className="h-4 w-4" />
+            <button onClick={() => router.push(`/laudos/${result.laudo_id}`)} className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+              Ver laudo <ArrowRight className="h-4 w-4" />
             </button>
-            <button
-              onClick={() => router.push('/catalog')}
-              className="flex items-center gap-2 px-4 py-2 border border-border text-muted-foreground text-sm font-medium rounded-lg hover:bg-accent hover:text-foreground transition-colors"
-            >
-              Ver catálogo
+            <button onClick={() => router.push('/catalog')} className="px-4 py-2 border border-border text-muted-foreground text-sm font-medium rounded-lg hover:bg-accent transition-colors">
+              Catálogo
             </button>
-            <button
-              onClick={() => { setResult(null); setUrl(''); setCode(''); setFileContent(''); setFileName('') }}
-              className="px-4 py-2 text-muted-foreground/60 text-sm hover:text-muted-foreground transition-colors"
-            >
-              Novo artefato
+            <button onClick={() => { setResult(null); setUrl(''); setCode(''); setFileContent(''); setFileName('') }} className="px-4 py-2 text-muted-foreground/60 text-sm hover:text-muted-foreground transition-colors">
+              Novo
             </button>
           </div>
         </div>
       ) : (
         <form
           onSubmit={handleSubmit}
-          onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-          onDragEnter={e => { e.preventDefault(); setDragOver(true) }}
-          onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false) }}
+          onDragOver={e => e.preventDefault()}
           onDrop={handleDrop}
-          className="space-y-6 relative"
+          className="space-y-4"
         >
-          {dragOver && (
-            <div className="absolute inset-0 z-20 rounded-xl border-2 border-dashed border-primary bg-primary/5 flex items-center justify-center pointer-events-none">
-              <div className="text-center">
-                <Upload className="h-10 w-10 text-primary mx-auto mb-2" />
-                <p className="text-primary font-medium text-sm">Solte o arquivo para analisar</p>
-              </div>
-            </div>
-          )}
           <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+            {/* Mode tabs */}
             <div className="flex border-b border-border">
               {MODES.map(({ id, label, icon: Icon }) => (
                 <button
-                  key={id}
-                  type="button"
-                  onClick={() => setMode(id)}
+                  key={id} type="button" onClick={() => setMode(id)}
                   className={cn(
-                    'flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors',
-                    mode === id
-                      ? 'bg-primary/10 text-primary border-b-2 border-primary'
-                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                    'flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors',
+                    mode === id ? 'bg-primary/10 text-primary border-b-2 border-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                   )}
                 >
-                  <Icon className="h-4 w-4" />
-                  {label}
+                  <Icon className="h-4 w-4" /> {label}
                 </button>
               ))}
             </div>
 
-            {/* Drop zone hint — visible when not dragging */}
-            {mode !== 'file' && (
-              <div className="mx-5 mt-4 border border-dashed border-border/50 rounded-lg px-4 py-2.5 flex items-center gap-2 text-xs text-muted-foreground/50">
-                <Upload className="h-3.5 w-3.5 shrink-0" />
-                Arraste qualquer arquivo aqui para analisar diretamente
-              </div>
-            )}
-
-            <div className="p-5 space-y-4">
+            <div className="p-4 space-y-3">
+              {/* URL mode */}
               {mode === 'url' && (
                 <>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground/80 mb-1.5">
-                      URL do artefato <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={url}
-                      onChange={e => setUrl(e.target.value)}
-                      placeholder="https://meu-projeto.lovable.app ou github.com/org/repo"
-                      required
-                      className={inputCls}
-                    />
-                    {lovableEditor ? (
-                      <div className="mt-3 rounded-lg border border-amber-700/40 bg-amber-950/20 p-4 space-y-3">
-                        <div className="flex items-start gap-2">
-                          <AlertTriangle className="h-4 w-4 text-amber-400 mt-0.5 shrink-0" />
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium text-amber-300">Este é o link do editor, não da aplicação publicada.</p>
-                            <p className="text-xs text-amber-300/80">Para analisar, você precisa do link da app deployada (ex: <span className="font-mono">meu-projeto.lovable.app</span>).</p>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-xs font-medium text-amber-300/70 uppercase tracking-wide">Como encontrar o link correto:</p>
-                          <div className="space-y-2 text-xs text-amber-300/80">
-                            <p><span className="font-medium text-amber-300">1.</span> No editor, clique em <span className="font-medium text-amber-300">Publish</span> na barra superior:</p>
-                          </div>
-                          <div className="rounded-md overflow-hidden border border-amber-700/30">
-                            <Image
-                              src="/guide-lovable-toolbar.jpg"
-                              alt="Barra do Lovable com botão Publish"
-                              width={300}
-                              height={60}
-                              className="w-full h-auto"
-                              unoptimized
-                            />
-                          </div>
-                          <div className="text-xs text-amber-300/80">
-                            <p><span className="font-medium text-amber-300">2.</span> No painel que abrir, clique em <span className="font-medium text-amber-300">Share preview</span> e copie o link da app:</p>
-                          </div>
-                          <div className="rounded-md overflow-hidden border border-amber-700/30">
-                            <Image
-                              src="/guide-lovable-share.jpg"
-                              alt="Painel Share do Lovable com opção Share preview"
-                              width={400}
-                              height={280}
-                              className="w-full h-auto"
-                              unoptimized
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ) : urlHint ? (
-                      <p className="mt-1.5 text-xs text-primary">{urlHint}</p>
-                    ) : null}
-                  </div>
-                  <div>
-                    {urlHint.includes('Lovable') || urlHint.includes('Vercel') ? (
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-sm font-medium text-foreground/80">
-                          <GitBranch className="inline h-3.5 w-3.5 mr-1" />
-                          GitHub do projeto
-                        </label>
-                        <span className="text-[10px] font-semibold uppercase tracking-wide bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                          Recomendado
-                        </span>
-                      </div>
-                    ) : (
-                      <label className="block text-sm font-medium text-foreground/80 mb-1.5">
-                        <GitBranch className="inline h-3.5 w-3.5 mr-1" />
-                        GitHub do projeto <span className="text-muted-foreground font-normal">(opcional)</span>
-                      </label>
-                    )}
-                    <input
-                      type="text"
-                      value={githubUrl}
-                      onChange={e => setGithubUrl(e.target.value)}
-                      placeholder="https://github.com/org/repo"
-                      className={cn(inputCls, (urlHint.includes('Lovable') || urlHint.includes('Vercel')) && !githubUrl && 'border-amber-500/50 focus:ring-amber-400/40 focus:border-amber-400/60')}
-                    />
-                    {(urlHint.includes('Lovable') || urlHint.includes('Vercel')) && !githubUrl && (
-                      <p className="mt-1.5 text-xs text-amber-400/80">
-                        Sem o GitHub, a análise usará o JS compilado — menos precisa. Se o projeto tiver repositório vinculado, cole o link aqui.
-                      </p>
-                    )}
-                  </div>
+                  <input type="text" value={url} onChange={e => setUrl(e.target.value)} placeholder="https://meu-projeto.lovable.app ou github.com/org/repo" required className={inputCls} />
+                  <input type="text" value={githubUrl} onChange={e => setGithubUrl(e.target.value)} placeholder="GitHub do projeto (opcional)" className={inputCls} />
                 </>
               )}
 
+              {/* Code mode */}
               {mode === 'code' && (
                 <>
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-sm font-medium text-foreground/80">Nome do arquivo (opcional)</label>
-                      <button
-                        type="button"
-                        onClick={() => codeFileRef.current?.click()}
-                        className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors"
-                      >
-                        <Upload className="h-3.5 w-3.5" />
-                        Importar arquivo
-                      </button>
-                      <input
-                        ref={codeFileRef}
-                        type="file"
-                        className="hidden"
-                        accept=".py,.ts,.tsx,.js,.jsx,.sql,.json,.yaml,.yml,.txt,.md,.csv,.sh,.go,.rb,.php,.java,.r,.ipynb,.toml,.xml,.html,.env"
-                        onChange={e => {
-                          const file = e.target.files?.[0]
-                          if (!file) return
-                          setFileName(file.name)
-                          const reader = new FileReader()
-                          reader.onload = ev => setCode(ev.target?.result as string)
-                          reader.readAsText(file)
-                        }}
-                      />
-                    </div>
-                    <input
-                      type="text"
-                      value={fileName}
-                      onChange={e => setFileName(e.target.value)}
-                      placeholder="script.py, query.sql, workflow.json..."
-                      className={inputCls}
-                    />
+                  <div className="flex items-center justify-between">
+                    <input type="text" value={fileName} onChange={e => setFileName(e.target.value)} placeholder="Nome do arquivo (ex: script.py)" className={cn(inputCls, 'flex-1')} />
+                    <button type="button" onClick={() => codeFileRef.current?.click()} className="ml-2 text-xs text-primary hover:text-primary/80 whitespace-nowrap">
+                      <Upload className="h-3.5 w-3.5 inline mr-1" />Importar
+                    </button>
+                    <input ref={codeFileRef} type="file" className="hidden" accept=".py,.ts,.tsx,.js,.jsx,.sql,.json,.yaml,.yml,.txt,.md,.csv,.sh,.go,.rb,.php,.java,.r,.ipynb,.toml,.xml,.html,.env" onChange={e => { const f = e.target.files?.[0]; if (f) { setFileName(f.name); const r = new FileReader(); r.onload = ev => setCode(ev.target?.result as string); r.readAsText(f) } }} />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground/80 mb-1.5">
-                      Código <span className="text-red-400">*</span>
-                    </label>
-                    <textarea
-                      value={code}
-                      onChange={e => setCode(e.target.value)}
-                      required
-                      rows={10}
-                      placeholder="Cole o código aqui..."
-                      className={cn(inputCls, 'font-mono resize-y')}
-                    />
-                  </div>
+                  <textarea value={code} onChange={e => setCode(e.target.value)} required rows={8} placeholder="Cole o código aqui..." className={cn(inputCls, 'font-mono resize-y')} />
                 </>
               )}
 
+              {/* File mode */}
               {mode === 'file' && (
                 <div>
-                  <label className="block text-sm font-medium text-foreground/80 mb-1.5">
-                    Arquivo <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept=".py,.ts,.tsx,.js,.jsx,.sql,.json,.yaml,.yml,.txt,.md,.csv,.sh,.go,.rb,.php,.java,.r,.ipynb,.toml,.xml,.html,.env"
-                    onChange={handleFileChange}
-                    className="block w-full text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary/15 file:text-primary hover:file:bg-primary/25"
-                  />
-                  {fileContent && (
-                    <p className="mt-1.5 text-xs text-emerald-400">{fileName} carregado ({fileContent.length.toLocaleString()} chars)</p>
-                  )}
+                  <input ref={fileRef} type="file" accept=".py,.ts,.tsx,.js,.jsx,.sql,.json,.yaml,.yml,.txt,.md,.csv,.sh,.go,.rb,.php,.java,.r,.ipynb,.toml,.xml,.html,.env" onChange={handleFileChange} className="block w-full text-sm text-muted-foreground file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary/15 file:text-primary hover:file:bg-primary/25" />
+                  {fileContent && <p className="mt-1.5 text-xs text-emerald-400">{fileName} ({fileContent.length.toLocaleString()} chars)</p>}
                 </div>
               )}
-            </div>
-          </div>
 
-          <div className="bg-card rounded-xl border border-border shadow-sm p-5 space-y-4">
-            <h2 className="text-sm font-semibold text-foreground/80">Informações do artefato</h2>
-            <div>
-              <label className="block text-sm font-medium text-foreground/80 mb-1.5">Nome do artefato</label>
-              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Script de importação Pipedrive" className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground/80 mb-1.5">Objetivo do artefato</label>
-              <textarea
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                rows={2}
-                placeholder="O que este artefato deve fazer? Quanto mais contexto, melhor o laudo."
-                className={cn(inputCls, 'resize-none')}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-foreground/80 mb-1.5">
-                Quem está submetendo <span className="text-red-400">*</span>
-              </label>
-              <input type="text" value={submittedBy} onChange={e => setSubmittedBy(e.target.value)} placeholder="Seu nome ou equipe" required className={inputCls} />
+              {/* Common fields */}
+              <div className="border-t border-border/50 pt-3 space-y-3">
+                <input type="text" value={description} onChange={e => setDescription(e.target.value)} placeholder="Objetivo do artefato (opcional)" className={inputCls} />
+                <input type="text" value={submittedBy} onChange={e => setSubmittedBy(e.target.value)} placeholder="Seu nome *" required className={inputCls} />
+              </div>
             </div>
           </div>
 
           {duplicate && (
             <div className="rounded-lg border border-amber-700/50 bg-amber-950/40 px-4 py-3 text-sm text-amber-300 space-y-2">
-              <p className="font-medium">Este artefato já foi analisado anteriormente.</p>
+              <p className="font-medium">Artefato já analisado.</p>
               <div className="flex flex-wrap gap-2">
-                {duplicate.laudo_id && (
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/laudos/${duplicate.laudo_id}`)}
-                    className="text-amber-300 underline hover:text-amber-200"
-                  >
-                    Ver laudo existente →
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={handleNewVersion}
-                  className="text-primary underline hover:text-primary/80"
-                >
-                  Criar nova versão (re-analisar)
-                </button>
+                {duplicate.laudo_id && <button type="button" onClick={() => router.push(`/laudos/${duplicate.laudo_id}`)} className="text-amber-300 underline hover:text-amber-200 text-xs">Ver laudo existente →</button>}
+                <button type="button" onClick={handleNewVersion} className="text-primary underline hover:text-primary/80 text-xs">Re-analisar</button>
               </div>
             </div>
           )}
 
-          {error && (
-            <div className="rounded-lg border border-red-800/50 bg-red-950/40 px-4 py-3 text-sm text-red-300">
-              {error}
-            </div>
-          )}
+          {error && <div className="rounded-lg border border-red-800/50 bg-red-950/40 px-4 py-3 text-sm text-red-300">{error}</div>}
 
-          <button
-            type="submit"
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
-          >
-            Gerar laudo
-            <ArrowRight className="h-4 w-4" />
+          <button type="submit" className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm">
+            Gerar laudo <ArrowRight className="h-4 w-4" />
           </button>
         </form>
       )}
-      <FloatingAssistant initialMessage="Olá! Posso te ajudar a submeter seu artefato corretamente ou tirar dúvidas sobre o processo de auditoria." />
+      <FloatingAssistant initialMessage="Posso te ajudar a submeter seu artefato ou tirar dúvidas sobre o processo." />
     </div>
   )
 }
