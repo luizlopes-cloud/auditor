@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Search, ClipboardList, BookOpen } from 'lucide-react'
+import { LayoutDashboard, Search, ClipboardList, BookOpen, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
 
@@ -11,6 +11,7 @@ const links = [
   { href: '/submit', label: 'Auditar', icon: Search },
   { href: '/laudos', label: 'Laudos', icon: ClipboardList },
   { href: '/catalog', label: 'Catálogo', icon: BookOpen },
+  { href: '/specs', label: 'Specs', icon: FileText },
 ]
 
 export function Sidebar() {

@@ -750,34 +750,56 @@ export default function LaudoDetailPage() {
           </div>
         </button>
 
-        <button
-          onClick={() => {
-            if (spec) { setSpecOpen(v => !v); return }
-            setLoadingSpec(true)
-            fetch(`/api/laudos/${id}/spec`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ funcionalidades: funcionalidades ?? [], reviewUi, reviewCode, similares: similares ?? [] }) })
-              .then(r => r.json())
-              .then(d => { setSpec(d.spec ?? d.error ?? 'Erro'); setSpecOpen(true) })
-              .catch(() => setSpec('Erro ao gerar spec'))
-              .finally(() => setLoadingSpec(false))
-          }}
-          disabled={loadingSpec}
-          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left disabled:opacity-60"
-        >
-          <div className="h-9 w-9 rounded-lg bg-emerald-900/40 flex items-center justify-center shrink-0"><FileText className="h-4 w-4 text-emerald-400" /></div>
-          <div>
-            <p className="text-sm font-medium text-foreground">Gerar Spec</p>
-            <p className="text-xs text-muted-foreground">{loadingSpec ? 'Gerando...' : spec ? (specOpen ? 'Fechar' : 'Ver resultado') : 'Documentação completa'}</p>
-          </div>
-        </button>
+        {(() => {
+          const missing: string[] = []
+          if (!funcionalidades || funcionalidades.length === 0) missing.push('Funcionalidades')
+          if (!reviewUi) missing.push('Revisão UI')
+          if (!reviewCode) missing.push('Revisão Código')
+          if (!similares) missing.push('Similares')
+          const canGenerate = missing.length === 0
+          return (
+            <button
+              onClick={() => {
+                if (!canGenerate) return
+                if (spec) { setSpecOpen(v => !v); return }
+                setLoadingSpec(true)
+                fetch(`/api/laudos/${id}/spec`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ funcionalidades: funcionalidades ?? [], reviewUi, reviewCode, similares: similares ?? [] }) })
+                  .then(r => r.json())
+                  .then(d => { setSpec(d.spec ?? d.error ?? 'Erro'); setSpecOpen(true) })
+                  .catch(() => setSpec('Erro ao gerar spec'))
+                  .finally(() => setLoadingSpec(false))
+              }}
+              disabled={loadingSpec || !canGenerate}
+              className={`flex items-center gap-3 p-4 bg-card rounded-xl border transition-all text-left ${canGenerate ? 'border-border hover:border-primary/30' : 'border-border/50 opacity-60 cursor-not-allowed'}`}
+            >
+              <div className="h-9 w-9 rounded-lg bg-emerald-900/40 flex items-center justify-center shrink-0"><FileText className="h-4 w-4 text-emerald-400" /></div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground">Gerar Spec</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {loadingSpec ? 'Gerando...' : spec ? (specOpen ? 'Fechar' : 'Ver resultado') : !canGenerate ? `Falta: ${missing.join(', ')}` : 'Todas as análises prontas'}
+                </p>
+              </div>
+            </button>
+          )
+        })()}
 
         <button
-          onClick={() => setAcessosOpen(v => !v)}
+          onClick={() => {
+            if (!acessosOpen) setAcessosOpen(true)
+            else setAcessosOpen(false)
+          }}
           className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left"
         >
           <div className="h-9 w-9 rounded-lg bg-amber-900/40 flex items-center justify-center shrink-0"><ClipboardCheck className="h-4 w-4 text-amber-400" /></div>
           <div>
             <p className="text-sm font-medium text-foreground">Checklist de Acessos</p>
-            <p className="text-xs text-muted-foreground">{acessosOpen ? 'Fechar' : 'Verificar acessos'}</p>
+            <p className="text-xs text-muted-foreground">
+              {acessosOpen ? 'Fechar' : (() => {
+                const a = artifact as any
+                const auto = [a?.github_url, (a?.content ?? '').match(/supabase/i), (a?.source_url ?? '').includes('vercel.app')].filter(Boolean).length
+                return `${auto}/5 detectados automaticamente`
+              })()}
+            </p>
           </div>
         </button>
       </div>

@@ -114,6 +114,9 @@ ${similaresResumo}`
       return NextResponse.json({ error: 'Erro ao gerar spec' }, { status: 500 })
     }
 
+    // Salva spec no laudo
+    await supabase.from('laudos').update({ spec } as any).eq('id', id)
+
     return NextResponse.json({ spec })
   } catch (err) {
     console.error('[spec] error:', err)
