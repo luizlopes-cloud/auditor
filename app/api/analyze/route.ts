@@ -17,7 +17,7 @@ function extractLovableName(url: string): string | null {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { mode, url, github_url, code, file_name, file_content, name, description, submitted_by, force } = body
+    const { mode, url, github_url, code, file_name, file_content, name, description, submitted_by, force, new_artifact } = body
 
     if (!submitted_by?.trim()) {
       return NextResponse.json({ error: 'Campo "submitted_by" é obrigatório' }, { status: 400 })
@@ -208,7 +208,7 @@ export async function POST(req: NextRequest) {
     let existingArtifactId: string | null = null
     let existingLaudoId: string | null = null
     let contentChanged = false
-    if (artifactSourceUrl || artifactGithubUrl) {
+    if (!new_artifact && (artifactSourceUrl || artifactGithubUrl)) {
       const orConditions: string[] = []
       if (artifactSourceUrl) orConditions.push(`source_url.eq.${artifactSourceUrl}`)
       if (artifactGithubUrl) orConditions.push(`github_url.eq.${artifactGithubUrl}`)

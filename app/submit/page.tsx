@@ -355,6 +355,27 @@ export default function SubmitPage() {
                   Re-analisar mesmo assim
                 </button>
                 <button
+                  onClick={async () => {
+                    setDuplicate(null)
+                    setLoading(true)
+                    setLoadingStep(0)
+                    const body: Record<string, string> = { mode, description, submitted_by: submittedBy || 'Anônimo', force: 'true', new_artifact: 'true' }
+                    if (mode === 'url') { body.url = normalizeUrl(url); if (githubUrl) body.github_url = normalizeUrl(githubUrl) }
+                    else if (mode === 'code') { body.code = code; if (fileName) body.file_name = fileName }
+                    else { body.file_name = fileName; body.file_content = fileContent }
+                    try {
+                      const res = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                      const data = await res.json()
+                      if (!res.ok) { setError(data.error ?? 'Erro'); return }
+                      setResult(data)
+                    } catch { setError('Erro de conexão.') }
+                    finally { setLoading(false) }
+                  }}
+                  className="w-full px-6 py-3 text-amber-400/80 text-sm hover:text-amber-300 transition-colors"
+                >
+                  Não é o mesmo projeto — criar novo
+                </button>
+                <button
                   onClick={() => setDuplicate(null)}
                   className="text-sm text-muted-foreground/50 hover:text-muted-foreground transition-colors"
                 >
