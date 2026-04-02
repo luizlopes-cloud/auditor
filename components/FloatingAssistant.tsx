@@ -91,7 +91,7 @@ export function FloatingAssistant({ context, initialMessage }: FloatingAssistant
                   background: m.role === 'user' ? 'var(--primary)' : 'var(--accent)',
                   color: m.role === 'user' ? 'white' : 'var(--foreground)',
                 }}>
-                  {m.content}
+                  {m.content.replace(/\*{1,3}/g, '').replace(/#{1,6}\s/g, '').replace(/`{1,3}/g, '').replace(/^[-*] /gm, '- ')}
                 </div>
               </div>
             ))}
