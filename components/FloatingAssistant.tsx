@@ -1,33 +1,22 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { MessageCircle, X, Send, Bot, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 type Message = { role: 'user' | 'assistant'; content: string }
 
 interface FloatingAssistantProps {
   context?: Record<string, unknown>
   initialMessage?: string
-  forceOpen?: boolean
-  onClose?: () => void
 }
 
-export function FloatingAssistant({ context, initialMessage, forceOpen, onClose }: FloatingAssistantProps) {
-  const [mounted, setMounted] = useState(false)
+export function FloatingAssistant({ context, initialMessage }: FloatingAssistantProps) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => { setMounted(true) }, [])
-
-  useEffect(() => {
-    if (forceOpen) { setOpen(true); onClose?.() }
-  }, [forceOpen, onClose])
 
   useEffect(() => {
     if (open && messages.length === 0 && initialMessage) {
@@ -66,10 +55,9 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
     }
   }
 
-  if (!mounted) return null
-
-  return createPortal(
+  return (
     <>
+      {/* Chat Panel */}
       {open && (
         <div style={{
           position: 'fixed', bottom: '72px', right: '24px',
@@ -81,7 +69,6 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
           border: '1px solid var(--border)',
           background: 'var(--card)',
         }}>
-          {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'color-mix(in srgb, var(--primary) 8%, transparent)', flexShrink: 0 }}>
             <div style={{ height: '28px', width: '28px', borderRadius: '50%', background: 'color-mix(in srgb, var(--primary) 20%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Bot size={16} style={{ color: 'var(--primary)' }} />
@@ -95,7 +82,6 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
             </button>
           </div>
 
-          {/* Messages */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {messages.map((m, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
@@ -119,7 +105,6 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
             <div ref={bottomRef} />
           </div>
 
-          {/* Input */}
           <div style={{ padding: '12px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px', flexShrink: 0 }}>
             <input
               ref={inputRef}
@@ -142,7 +127,7 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
         </div>
       )}
 
-      {/* FAB */}
+      {/* FAB Button — always rendered, even in SSR */}
       <button
         onClick={() => setOpen(v => !v)}
         aria-label="Assistente"
@@ -155,14 +140,10 @@ export function FloatingAssistant({ context, initialMessage, forceOpen, onClose 
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 10px 25px -5px rgba(0,0,0,0.4)',
           zIndex: 999999,
-          transition: 'transform 0.2s, background 0.2s',
         }}
-        onMouseEnter={e => { if (!open) (e.currentTarget as HTMLElement).style.transform = 'scale(1.1)' }}
-        onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)' }}
       >
         {open ? <X size={20} /> : <MessageCircle size={20} />}
       </button>
-    </>,
-    document.body
+    </>
   )
 }
