@@ -199,7 +199,7 @@ export async function POST(req: NextRequest) {
     try {
       laudoResult = await analyzeArtifact(analysisContext)
     } catch (aiError) {
-      if (!existingArtifactId) await supabase.from('artifacts').update({ status: 'error' }).eq('id', artifact.id)
+      if (!existingArtifactId) await supabase.from('artifacts').delete().eq('id', artifact.id)
       return NextResponse.json({ error: String(aiError) }, { status: 500 })
     }
 
