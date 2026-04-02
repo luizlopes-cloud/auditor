@@ -102,14 +102,14 @@ export async function fetchPRContent(url: string): Promise<RepoContent & { prTit
   }
 }
 
-async function fetchGitHub(path: string): Promise<Response> {
+export async function fetchGitHub(path: string): Promise<Response> {
   return fetch(`${GITHUB_API}${path}`, {
     headers: githubHeaders(),
     next: { revalidate: 0 },
   })
 }
 
-async function fetchFileContent(owner: string, repo: string, filePath: string): Promise<string | null> {
+export async function fetchFileContent(owner: string, repo: string, filePath: string): Promise<string | null> {
   try {
     const res = await fetchGitHub(`/repos/${owner}/${repo}/contents/${encodeURIComponent(filePath)}`)
     if (!res.ok) return null
@@ -123,7 +123,7 @@ async function fetchFileContent(owner: string, repo: string, filePath: string): 
   }
 }
 
-async function fetchRepoTree(owner: string, repo: string): Promise<string[]> {
+export async function fetchRepoTree(owner: string, repo: string): Promise<string[]> {
   try {
     const res = await fetchGitHub(`/repos/${owner}/${repo}/git/trees/HEAD?recursive=1`)
     if (!res.ok) return []
@@ -269,4 +269,72 @@ export async function fetchRepoContent(url: string): Promise<RepoContent> {
     language: repoData.language,
     description: repoData.description,
   }
+}
+
+// ── Auto-Fix GitHub helpers ─────────────────────────────────────────────
+
+export async function getDefaultBranch(owner: string, repo: string): Promise<string> {
+  const res = await fetchGitHub(`/repos/${owner}/${repo}`)
+  if (!res.ok) throw new Error(`Repo não encontrado: ${owner}/${repo}`)
+  const data = await res.json()
+  return data.default_branch ?? 'main'
+}
+
+export async function getLatestCommitSha(owner: string, repo: string, branch: string): Promise<string> {
+  const res = await fetchGitHub(`/repos/${owner}/${repo}/git/refs/heads/${branch}`)
+  if (!res.ok) throw new Error(`Branch ${branch} não encontrada`)
+  const data = await res.json()
+  return data.object.sha
+}
+
+export async function createBranch(owner: string, repo: string, branchName: string, fromSha: string): Promise<void> {
+  const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/git/refs`, {
+    method: 'POST',
+    headers: { ...githubHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ref: `refs/heads/${branchName}`, sha: fromSha }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`Erro ao criar branch: ${err.message ?? res.statusText}`)
+  }
+}
+
+export async function getFileSha(owner: string, repo: string, path: string, branch: string): Promise<{ sha: string; content: string }> {
+  const res = await fetchGitHub(`/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}?ref=${branch}`)
+  if (!res.ok) throw new Error(`Arquivo não encontrado: ${path}`)
+  const data = await res.json()
+  const content = data.encoding === 'base64'
+    ? Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf-8')
+    : ''
+  return { sha: data.sha, content }
+}
+
+export async function updateFile(owner: string, repo: string, path: string, content: string, message: string, branch: string, fileSha: string): Promise<void> {
+  const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`, {
+    method: 'PUT',
+    headers: { ...githubHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message,
+      content: Buffer.from(content).toString('base64'),
+      sha: fileSha,
+      branch,
+    }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`Erro ao atualizar ${path}: ${err.message ?? res.statusText}`)
+  }
+}
+
+export async function createPullRequest(owner: string, repo: string, title: string, body: string, head: string, base: string): Promise<{ number: number; html_url: string }> {
+  const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/pulls`, {
+    method: 'POST',
+    headers: { ...githubHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, body, head, base }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`Erro ao criar PR: ${err.message ?? res.statusText}`)
+  }
+  return res.json()
 }

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ScoreBadge } from '@/components/ScoreBadge'
 import { CheckItem } from '@/components/CheckItem'
-import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, Globe, ArrowLeft, ExternalLink, Trash2, Merge, RotateCcw, Link2, CheckCircle2, XCircle, MessageSquare, Send, Pencil, ChevronDown, ChevronRight, Monitor, Code2, FileText, ClipboardCheck, Square, SquareCheck } from 'lucide-react'
+import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, Globe, ArrowLeft, ExternalLink, Trash2, Merge, RotateCcw, Link2, CheckCircle2, XCircle, MessageSquare, Send, Pencil, ChevronDown, ChevronRight, Monitor, Code2, FileText, ClipboardCheck, Square, SquareCheck, Wrench } from 'lucide-react'
 import Link from 'next/link'
 
 type Check = {
@@ -118,7 +118,11 @@ export default function LaudoDetailPage() {
   }
 
   // Um painel aberto por vez
-  const [activePanel, setActivePanel] = useState<'ui' | 'code' | 'spec' | 'acessos' | null>(null)
+  // Auto-fix
+  const [fixResult, setFixResult] = useState<any | null>(null)
+  const [loadingFix, setLoadingFix] = useState(false)
+
+  const [activePanel, setActivePanel] = useState<'ui' | 'code' | 'spec' | 'acessos' | 'fix' | null>(null)
   const togglePanel = (panel: typeof activePanel) => setActivePanel(prev => prev === panel ? null : panel)
 
   // Comments
@@ -827,9 +831,81 @@ export default function LaudoDetailPage() {
             </p>
           </div>
         </button>
+        {/* Corrigir Problemas */}
+        <button
+          onClick={() => {
+            if (fixResult) { togglePanel('fix'); return }
+            setLoadingFix(true)
+            fetch(`/api/laudos/${id}/auto-fix`, { method: 'POST' })
+              .then(r => r.json())
+              .then(d => { setFixResult(d); setActivePanel('fix') })
+              .catch(() => setFixResult({ error: 'Erro ao corrigir problemas' }))
+              .finally(() => setLoadingFix(false))
+          }}
+          disabled={loadingFix || !artifact?.github_url}
+          className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left disabled:opacity-60 sm:col-span-2"
+        >
+          <div className="h-9 w-9 rounded-lg bg-rose-900/40 flex items-center justify-center shrink-0"><Wrench className="h-4 w-4 text-rose-400" /></div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground">Corrigir Problemas</p>
+            <p className="text-xs text-muted-foreground truncate">
+              {loadingFix ? 'Criando branch e aplicando correções...' : fixResult ? (activePanel === 'fix' ? 'Fechar' : 'Ver resultado') : !artifact?.github_url ? 'Requer GitHub' : 'Gera branch + PR com correções automáticas'}
+            </p>
+          </div>
+        </button>
       </div>
 
       {/* ── Resultados das ferramentas (abaixo dos botões) ── */}
+
+      {/* Painel: Auto-Fix */}
+      {activePanel === 'fix' && fixResult && (
+        <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Wrench className="h-4 w-4 text-rose-400" /> Correções Automáticas</h2>
+            <button onClick={() => setActivePanel(null)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+          </div>
+          {fixResult.error ? (
+            <p className="text-sm text-red-400">{fixResult.error}</p>
+          ) : (
+            <>
+              <div className="flex gap-4 text-xs">
+                <span className="text-emerald-400 font-medium">{fixResult.total_fixed ?? 0} corrigidos</span>
+                <span className="text-amber-400">{fixResult.total_skipped ?? 0} pulados</span>
+                <span className="text-red-400">{fixResult.total_failed ?? 0} falharam</span>
+                <span className="text-muted-foreground">{fixResult.total_problems ?? 0} problemas total</span>
+              </div>
+              {fixResult.pr_url && (
+                <a href={fixResult.pr_url} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+                  <ExternalLink className="h-4 w-4" /> Ver Pull Request
+                </a>
+              )}
+              {!fixResult.pr_url && fixResult.branch && (
+                <p className="text-xs text-muted-foreground">Branch criada: <span className="font-mono text-foreground">{fixResult.branch}</span></p>
+              )}
+              {fixResult.fixes_applied?.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Arquivos corrigidos</h3>
+                  {fixResult.fixes_applied.map((a: any, i: number) => (
+                    <div key={i} className="rounded-lg border border-emerald-800/40 bg-emerald-950/20 p-3 text-xs">
+                      <p className="font-mono font-medium text-foreground">{a.file}</p>
+                      <p className="text-muted-foreground mt-0.5">{a.problems?.join(', ')}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {fixResult.fixes_skipped?.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-xs font-semibold text-amber-400 uppercase tracking-wide">Pulados</h3>
+                  {fixResult.fixes_skipped.map((s: any, i: number) => (
+                    <p key={i} className="text-xs text-muted-foreground"><span className="font-mono">{s.file}</span>: {s.reason}</p>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
 
       {activePanel === 'ui' && reviewUi && typeof reviewUi === 'object' && (
         <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
