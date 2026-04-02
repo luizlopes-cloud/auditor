@@ -7,22 +7,27 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params
-    const { name } = await req.json()
+    const body = await req.json()
+    const { name, equipe } = body
 
-    if (!name?.trim()) {
+    if (name !== undefined && !name?.trim()) {
       return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
     }
 
     const supabase = await createClient()
 
+    const update: Record<string, string | null> = {}
+    if (name !== undefined) update.name = name.trim()
+    if (equipe !== undefined) update.equipe = equipe?.trim() || null
+
     const { error } = await supabase
       .from('artifacts')
-      .update({ name: name.trim() })
+      .update(update as any)
       .eq('id', id)
 
     if (error) {
       console.error('[artifacts PATCH] error:', error)
-      return NextResponse.json({ error: 'Erro ao atualizar nome' }, { status: 500 })
+      return NextResponse.json({ error: 'Erro ao atualizar artefato' }, { status: 500 })
     }
 
     return NextResponse.json({ ok: true })

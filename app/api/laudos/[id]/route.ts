@@ -34,6 +34,36 @@ export async function GET(
   }
 }
 
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const { aprovacao_manual, nota_aprovacao } = await req.json()
+
+    const supabase = await createClient()
+    const update: Record<string, unknown> = {}
+    if (aprovacao_manual !== undefined) update.aprovacao_manual = aprovacao_manual
+    if (nota_aprovacao !== undefined) update.nota_aprovacao = nota_aprovacao
+
+    const { error } = await supabase
+      .from('laudos')
+      .update(update as any)
+      .eq('id', id)
+
+    if (error) {
+      console.error('[laudos PATCH] error:', error)
+      return NextResponse.json({ error: 'Erro ao atualizar laudo' }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    console.error('[laudos PATCH] unhandled:', err)
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
+  }
+}
+
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

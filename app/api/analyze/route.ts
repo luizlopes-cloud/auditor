@@ -8,7 +8,7 @@ import { detectUrlType, fetchUrlContent, detectEditorUrl } from '@/lib/url-fetch
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { mode, url, github_url, code, file_name, file_content, name, description, submitted_by } = body
+    const { mode, url, github_url, code, file_name, file_content, name, description, submitted_by, force } = body
 
     if (!submitted_by?.trim()) {
       return NextResponse.json({ error: 'Campo "submitted_by" é obrigatório' }, { status: 400 })
@@ -136,6 +136,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Verificar duplicata exata ──────────────────────────────────────────
+    let existingArtifactId: string | null = null
     if (artifactSourceUrl || artifactGithubUrl) {
       const orConditions: string[] = []
       if (artifactSourceUrl) orConditions.push(`source_url.eq.${artifactSourceUrl}`)
@@ -151,29 +152,42 @@ export async function POST(req: NextRequest) {
       if (existing) {
         const laudos = existing.laudos as { id: string }[] | { id: string } | null
         const existingLaudoId = Array.isArray(laudos) ? laudos[0]?.id : laudos?.id
-        return NextResponse.json({
-          error: 'Este artefato já foi analisado anteriormente.',
-          existing_laudo_id: existingLaudoId ?? null,
-        }, { status: 409 })
+        if (!force) {
+          return NextResponse.json({
+            error: 'Este artefato já foi analisado anteriormente.',
+            existing_laudo_id: existingLaudoId ?? null,
+            existing_artifact_id: existing.id,
+          }, { status: 409 })
+        }
+        existingArtifactId = existing.id
       }
     }
 
-    // ── Persistir artefato ─────────────────────────────────────────────────
-    const { data: artifact, error: artifactError } = await supabase
-      .from('artifacts')
-      .insert({
-        name: artifactName,
-        type: artifactType,
-        source: artifactSource,
-        source_url: artifactSourceUrl,
-        github_url: artifactGithubUrl,
-        content: artifactContent.slice(0, 20000),
-        description: description ?? null,
-        submitted_by: submitted_by.trim(),
-        status: 'analyzing',
-      })
-      .select()
-      .single()
+    // ── Persistir artefato (reusar existente se nova versão) ──────────────
+    let artifact: { id: string } | null = null
+    let artifactError: unknown = null
+
+    if (existingArtifactId) {
+      artifact = { id: existingArtifactId }
+    } else {
+      const result = await supabase
+        .from('artifacts')
+        .insert({
+          name: artifactName,
+          type: artifactType,
+          source: artifactSource,
+          source_url: artifactSourceUrl,
+          github_url: artifactGithubUrl,
+          content: artifactContent.slice(0, 20000),
+          description: description ?? null,
+          submitted_by: submitted_by.trim(),
+          status: 'analyzing',
+        })
+        .select()
+        .single()
+      artifact = result.data
+      artifactError = result.error
+    }
 
     if (artifactError || !artifact) {
       console.error('[analyze] artifact insert error:', artifactError)
@@ -185,11 +199,23 @@ export async function POST(req: NextRequest) {
     try {
       laudoResult = await analyzeArtifact(analysisContext)
     } catch (aiError) {
-      await supabase.from('artifacts').update({ status: 'error' }).eq('id', artifact.id)
+      if (!existingArtifactId) await supabase.from('artifacts').update({ status: 'error' }).eq('id', artifact.id)
       return NextResponse.json({ error: String(aiError) }, { status: 500 })
     }
 
     const tempo_analise_ms = Date.now() - start
+
+    // ── Determinar versão ──────────────────────────────────────────────────
+    let version = 1
+    if (existingArtifactId) {
+      const { data: versionRows } = await supabase
+        .from('laudos')
+        .select('version')
+        .eq('artifact_id', artifact.id)
+        .order('version', { ascending: false })
+        .limit(1)
+      version = ((versionRows?.[0] as any)?.version ?? 1) + 1
+    }
 
     // ── Persistir laudo ────────────────────────────────────────────────────
     const { data: laudo, error: laudoError } = await supabase
@@ -202,7 +228,8 @@ export async function POST(req: NextRequest) {
         checks: laudoResult.checks as unknown as import('@/types/database').Json,
         model_used: laudoResult.model_used,
         tempo_analise_ms,
-      })
+        version,
+      } as any)
       .select()
       .single()
 
@@ -211,9 +238,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Erro ao salvar laudo' }, { status: 500 })
     }
 
-    await supabase.from('artifacts').update({ status: 'done' }).eq('id', artifact.id)
+    if (!existingArtifactId) await supabase.from('artifacts').update({ status: 'done' }).eq('id', artifact.id)
 
-    return NextResponse.json({ laudo_id: laudo.id, artifact_id: artifact.id, resultado: laudoResult.resultado, score: laudoResult.score })
+    return NextResponse.json({ laudo_id: laudo.id, artifact_id: artifact.id, resultado: laudoResult.resultado, score: laudoResult.score, version })
   } catch (err) {
     console.error('[analyze] unhandled error:', err)
     return NextResponse.json({ error: 'Erro interno. Tente novamente.' }, { status: 500 })

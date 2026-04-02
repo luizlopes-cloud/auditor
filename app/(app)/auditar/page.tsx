@@ -28,7 +28,7 @@ export default function AuditarPage() {
   const [loadingStep, setLoadingStep] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ laudo_id: string; resultado: string; score: number } | null>(null)
-  const [duplicate, setDuplicate] = useState<{ laudo_id: string } | null>(null)
+  const [duplicate, setDuplicate] = useState<{ laudo_id: string; artifact_id?: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [url, setUrl] = useState('')
@@ -58,6 +58,33 @@ export default function AuditarPage() {
       if (host.endsWith('.vercel.app')) return 'Vercel detectado — buscando aplicação...'
       return 'Link externo — buscando página...'
     } catch { return '' }
+  }
+
+  const handleNewVersion = async () => {
+    setError(null)
+    setDuplicate(null)
+    setLoading(true)
+    setLoadingStep(0)
+
+    const body: Record<string, string | boolean> = {
+      mode, name, description, submitted_by: submittedBy, force: true,
+    }
+    if (mode === 'url') { body.url = normalizeUrl(url); if (githubUrl) body.github_url = normalizeUrl(githubUrl) }
+    else if (mode === 'code') { body.code = code; if (fileName) body.file_name = fileName }
+    else { body.file_name = fileName; body.file_content = fileContent }
+
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      setLoadingStep(2)
+      const data = await res.json()
+      if (!res.ok) { setError(data.error ?? 'Erro desconhecido'); return }
+      setResult(data)
+    } catch { setError('Erro de conexão. Tente novamente.') }
+    finally { setLoading(false) }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,7 +125,7 @@ export default function AuditarPage() {
       const data = await res.json()
 
       if (res.status === 409) {
-        setDuplicate({ laudo_id: data.existing_laudo_id })
+        setDuplicate({ laudo_id: data.existing_laudo_id, artifact_id: data.existing_artifact_id })
         setLoading(false)
         return
       }
@@ -287,17 +314,26 @@ export default function AuditarPage() {
           </div>
 
           {duplicate && (
-            <div className="rounded-lg border border-amber-700/50 bg-amber-950/40 px-4 py-3 text-sm text-amber-300 flex items-center justify-between gap-3">
-              <span>Este artefato já foi analisado anteriormente.</span>
-              {duplicate.laudo_id && (
+            <div className="rounded-lg border border-amber-700/50 bg-amber-950/40 px-4 py-3 text-sm text-amber-300 space-y-2">
+              <p className="font-medium">Este artefato já foi analisado anteriormente.</p>
+              <div className="flex flex-wrap gap-2">
+                {duplicate.laudo_id && (
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/laudos/${duplicate.laudo_id}`)}
+                    className="text-amber-300 underline hover:text-amber-200"
+                  >
+                    Ver laudo existente →
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => router.push(`/laudos/${duplicate.laudo_id}`)}
-                  className="shrink-0 text-amber-300 underline hover:text-amber-200"
+                  onClick={handleNewVersion}
+                  className="text-primary underline hover:text-primary/80"
                 >
-                  Ver laudo existente →
+                  Criar nova versão (re-analisar)
                 </button>
-              )}
+              </div>
             </div>
           )}
 
