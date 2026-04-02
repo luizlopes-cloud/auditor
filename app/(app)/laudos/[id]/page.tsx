@@ -67,23 +67,23 @@ export default function LaudoDetailPage() {
   // Review UI
   const [reviewUi, setReviewUi] = useState<any | null>(null)
   const [loadingUi, setLoadingUi] = useState(false)
-  const [uiOpen, setUiOpen] = useState(false)
 
   // Review Code
   const [reviewCode, setReviewCode] = useState<any | null>(null)
   const [loadingCode, setLoadingCode] = useState(false)
-  const [codeOpen, setCodeOpen] = useState(false)
 
   // Spec
   const [spec, setSpec] = useState<any | null>(null)
   const [loadingSpec, setLoadingSpec] = useState(false)
-  const [specOpen, setSpecOpen] = useState(false)
 
   // Checklist de acessos
   const [acessos, setAcessos] = useState<Record<string, boolean>>({
     github: false, supabase: false, vercel: false, dominio: false, staging: false,
   })
-  const [acessosOpen, setAcessosOpen] = useState(false)
+
+  // Um painel aberto por vez
+  const [activePanel, setActivePanel] = useState<'ui' | 'code' | 'spec' | 'acessos' | null>(null)
+  const togglePanel = (panel: typeof activePanel) => setActivePanel(prev => prev === panel ? null : panel)
 
   // Comments
   const [comentarios, setComentarios] = useState<Comentario[]>([])
@@ -590,11 +590,11 @@ export default function LaudoDetailPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
         <button
           onClick={() => {
-            if (reviewUi) { setUiOpen(v => !v); return }
+            if (reviewUi) { togglePanel('ui'); return }
             setLoadingUi(true)
             fetch(`/api/laudos/${id}/review-ui`, { method: 'POST' })
               .then(r => r.json())
-              .then(d => { setReviewUi(d.review ?? d.error ?? 'Erro'); setUiOpen(true) })
+              .then(d => { setReviewUi(d.review ?? d.error ?? 'Erro'); setActivePanel('ui') })
               .catch(() => setReviewUi('Erro ao revisar UI'))
               .finally(() => setLoadingUi(false))
           }}
@@ -604,17 +604,17 @@ export default function LaudoDetailPage() {
           <div className="h-9 w-9 rounded-lg bg-violet-900/40 flex items-center justify-center shrink-0"><Monitor className="h-4 w-4 text-violet-400" /></div>
           <div>
             <p className="text-sm font-medium text-foreground">Revisar UI</p>
-            <p className="text-xs text-muted-foreground">{loadingUi ? 'Analisando...' : reviewUi ? (uiOpen ? 'Fechar' : 'Ver resultado') : 'Interface e UX'}</p>
+            <p className="text-xs text-muted-foreground">{loadingUi ? 'Analisando...' : reviewUi ? (activePanel === 'ui' ? 'Fechar' : 'Ver resultado') : 'Interface e UX'}</p>
           </div>
         </button>
 
         <button
           onClick={() => {
-            if (reviewCode) { setCodeOpen(v => !v); return }
+            if (reviewCode) { togglePanel('code'); return }
             setLoadingCode(true)
             fetch(`/api/laudos/${id}/review-code`, { method: 'POST' })
               .then(r => r.json())
-              .then(d => { setReviewCode(d.review ?? d.error ?? 'Erro'); setCodeOpen(true) })
+              .then(d => { setReviewCode(d.review ?? d.error ?? 'Erro'); setActivePanel('code') })
               .catch(() => setReviewCode('Erro ao revisar código'))
               .finally(() => setLoadingCode(false))
           }}
@@ -624,7 +624,7 @@ export default function LaudoDetailPage() {
           <div className="h-9 w-9 rounded-lg bg-cyan-900/40 flex items-center justify-center shrink-0"><Code2 className="h-4 w-4 text-cyan-400" /></div>
           <div>
             <p className="text-sm font-medium text-foreground">Revisar Código</p>
-            <p className="text-xs text-muted-foreground">{loadingCode ? 'Analisando...' : reviewCode ? (codeOpen ? 'Fechar' : 'Ver resultado') : 'Qualidade e segurança'}</p>
+            <p className="text-xs text-muted-foreground">{loadingCode ? 'Analisando...' : reviewCode ? (activePanel === 'code' ? 'Fechar' : 'Ver resultado') : 'Qualidade e segurança'}</p>
           </div>
         </button>
 
@@ -639,11 +639,11 @@ export default function LaudoDetailPage() {
             <button
               onClick={() => {
                 if (!canGenerate) return
-                if (spec) { setSpecOpen(v => !v); return }
+                if (spec) { togglePanel('spec'); return }
                 setLoadingSpec(true)
                 fetch(`/api/laudos/${id}/spec`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ funcionalidades: funcionalidades ?? [], reviewUi, reviewCode, similares: similares ?? [] }) })
                   .then(r => r.json())
-                  .then(d => { setSpec(d.spec ?? d.error ?? 'Erro'); setSpecOpen(true) })
+                  .then(d => { setSpec(d.spec ?? d.error ?? 'Erro'); setActivePanel('spec') })
                   .catch(() => setSpec('Erro ao gerar spec'))
                   .finally(() => setLoadingSpec(false))
               }}
@@ -654,7 +654,7 @@ export default function LaudoDetailPage() {
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground">Gerar Spec</p>
                 <p className="text-xs text-muted-foreground truncate">
-                  {loadingSpec ? 'Gerando...' : spec ? (specOpen ? 'Fechar' : 'Ver resultado') : !canGenerate ? `Falta: ${missing.join(', ')}` : 'Todas as análises prontas'}
+                  {loadingSpec ? 'Gerando...' : spec ? (activePanel === 'spec' ? 'Fechar' : 'Ver resultado') : !canGenerate ? `Falta: ${missing.join(', ')}` : 'Todas as análises prontas'}
                 </p>
               </div>
             </button>
@@ -662,17 +662,14 @@ export default function LaudoDetailPage() {
         })()}
 
         <button
-          onClick={() => {
-            if (!acessosOpen) setAcessosOpen(true)
-            else setAcessosOpen(false)
-          }}
+          onClick={() => togglePanel('acessos')}
           className="flex items-center gap-3 p-4 bg-card rounded-xl border border-border hover:border-primary/30 transition-all text-left"
         >
           <div className="h-9 w-9 rounded-lg bg-amber-900/40 flex items-center justify-center shrink-0"><ClipboardCheck className="h-4 w-4 text-amber-400" /></div>
           <div>
             <p className="text-sm font-medium text-foreground">Checklist de Acessos</p>
             <p className="text-xs text-muted-foreground">
-              {acessosOpen ? 'Fechar' : (() => {
+              {activePanel === 'acessos' ? 'Fechar' : (() => {
                 const a = artifact as any
                 const auto = [a?.github_url, (a?.content ?? '').match(/supabase/i), (a?.source_url ?? '').includes('vercel.app')].filter(Boolean).length
                 return `${auto}/5 detectados automaticamente`
@@ -684,11 +681,11 @@ export default function LaudoDetailPage() {
 
       {/* ── Resultados das ferramentas (abaixo dos botões) ── */}
 
-      {uiOpen && reviewUi && typeof reviewUi === 'object' && (
+      {activePanel === 'ui' && reviewUi && typeof reviewUi === 'object' && (
         <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Monitor className="h-4 w-4 text-violet-400" /> Revisão de UI — Score {reviewUi.score_ui}/100</h2>
-            <button onClick={() => setUiOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+            <button onClick={() => setActivePanel(null)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
           </div>
           <p className="text-sm text-muted-foreground">{reviewUi.resumo}</p>
           {reviewUi.categorias?.map((cat: any, ci: number) => (
@@ -706,11 +703,11 @@ export default function LaudoDetailPage() {
         </div>
       )}
 
-      {codeOpen && reviewCode && typeof reviewCode === 'object' && (
+      {activePanel === 'code' && reviewCode && typeof reviewCode === 'object' && (
         <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><Code2 className="h-4 w-4 text-cyan-400" /> Revisão de Código — Score {reviewCode.score_code}/100</h2>
-            <button onClick={() => setCodeOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+            <button onClick={() => setActivePanel(null)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
           </div>
           <p className="text-sm text-muted-foreground">{reviewCode.resumo}</p>
           {reviewCode.categorias?.map((cat: any, ci: number) => (
@@ -731,11 +728,11 @@ export default function LaudoDetailPage() {
         </div>
       )}
 
-      {specOpen && spec && typeof spec === 'object' && (
+      {activePanel === 'spec' && spec && typeof spec === 'object' && (
         <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><FileText className="h-4 w-4 text-emerald-400" /> Spec — {spec.nome}</h2>
-            <button onClick={() => setSpecOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+            <button onClick={() => setActivePanel(null)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
           </div>
           <p className="text-sm text-muted-foreground">{spec.descricao}</p>
           {spec.publico_alvo && <p className="text-xs text-muted-foreground"><span className="font-medium text-foreground">Público:</span> {spec.publico_alvo}</p>}
@@ -767,11 +764,11 @@ export default function LaudoDetailPage() {
         </div>
       )}
 
-      {acessosOpen && (
+      {activePanel === 'acessos' && (
         <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-4 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2"><ClipboardCheck className="h-4 w-4 text-amber-400" /> Checklist de Acessos</h2>
-            <button onClick={() => setAcessosOpen(false)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
+            <button onClick={() => setActivePanel(null)} className="text-muted-foreground hover:text-foreground"><XCircle className="h-4 w-4" /></button>
           </div>
           {[
             { key: 'github', label: 'GitHub', auto: !!artifact?.github_url, detail: artifact?.github_url ?? 'Não vinculado' },
