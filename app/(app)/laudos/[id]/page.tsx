@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ScoreBadge } from '@/components/ScoreBadge'
 import { CheckItem } from '@/components/CheckItem'
-import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion, ArrowLeft, ExternalLink, Trash2, Merge, Lightbulb, RotateCcw, Link2, CheckCircle2, XCircle, MessageSquare, Send, Pencil } from 'lucide-react'
+import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion, ArrowLeft, ExternalLink, Trash2, Merge, RotateCcw, Link2, CheckCircle2, XCircle, MessageSquare, Send, Pencil } from 'lucide-react'
 import Link from 'next/link'
 
 type Check = {
@@ -60,9 +60,6 @@ export default function LaudoDetailPage() {
   const [loadingSimilares, setLoadingSimilares] = useState(false)
 
   // Recommended actions
-  const [acoes, setAcoes] = useState<{ tipo: 'urgente' | 'sugerida' | 'oportunidade'; titulo: string; descricao: string }[] | null>(null)
-  const [loadingAcoes, setLoadingAcoes] = useState(false)
-
   // Comments
   const [comentarios, setComentarios] = useState<Comentario[]>([])
   const [loadingComentarios, setLoadingComentarios] = useState(false)
@@ -141,16 +138,6 @@ export default function LaudoDetailPage() {
     } finally {
       setReanalyzing(false)
     }
-  }
-
-  const fetchAcoes = () => {
-    if (acoes !== null || loadingAcoes) return
-    setLoadingAcoes(true)
-    fetch(`/api/laudos/${id}/actions`)
-      .then(r => r.json())
-      .then(d => setAcoes(d.acoes ?? []))
-      .catch(() => setAcoes([]))
-      .finally(() => setLoadingAcoes(false))
   }
 
   const fetchSimilares = () => {
@@ -461,71 +448,26 @@ export default function LaudoDetailPage() {
         )}
       </div>
 
-      {/* Ações complementares */}
-      <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold text-foreground">Ações recomendadas</h2>
-          </div>
-          {acoes === null && (
-            <button onClick={fetchAcoes} disabled={loadingAcoes} className="text-xs text-primary hover:text-primary/80 font-medium disabled:opacity-50">
-              {loadingAcoes ? 'Gerando...' : 'Gerar agora'}
-            </button>
-          )}
-        </div>
-        {acoes === null && !loadingAcoes && (
-          <p className="text-sm text-muted-foreground/60">Clique em "Gerar agora" para obter recomendações de ações complementares.</p>
-        )}
-        {loadingAcoes && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <div className="h-4 w-4 rounded-full border-2 border-border/40 border-t-primary animate-spin" />
-            Analisando e gerando recomendações...
-          </div>
-        )}
-        {acoes !== null && acoes.length === 0 && (
-          <p className="text-sm text-muted-foreground/60">Nenhuma ação complementar identificada.</p>
-        )}
-        {acoes !== null && acoes.length > 0 && (
-          <div className="space-y-3">
-            {acoes.map((a, i) => {
-              const colorMap = { urgente: 'border-red-700/40 bg-red-950/20', sugerida: 'border-amber-700/40 bg-amber-950/20', oportunidade: 'border-blue-700/40 bg-blue-950/20' }
-              const labelMap = { urgente: 'text-red-300', sugerida: 'text-amber-300', oportunidade: 'text-blue-300' }
-              const badgeMap = { urgente: 'bg-red-900/50 text-red-300', sugerida: 'bg-amber-900/50 text-amber-300', oportunidade: 'bg-blue-900/50 text-blue-300' }
-              return (
-                <div key={i} className={`rounded-lg border p-4 ${colorMap[a.tipo]}`}>
-                  <div className="flex items-start gap-3">
-                    <span className={`shrink-0 mt-0.5 text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full ${badgeMap[a.tipo]}`}>{a.tipo}</span>
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <p className={`text-sm font-medium ${labelMap[a.tipo]}`}>{a.titulo}</p>
-                      <p className="text-xs text-muted-foreground">{a.descricao}</p>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
       {/* Artefatos similares */}
       <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Merge className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold text-foreground">Artefatos similares</h2>
-          </div>
-          {similares === null && (
-            <button onClick={fetchSimilares} disabled={loadingSimilares} className="text-xs text-primary hover:text-primary/80 font-medium disabled:opacity-50">
-              {loadingSimilares ? 'Verificando...' : 'Verificar agora'}
-            </button>
-          )}
+        <div className="flex items-center gap-2 mb-4">
+          <Merge className="h-4 w-4 text-muted-foreground" />
+          <h2 className="text-sm font-semibold text-foreground">Artefatos similares</h2>
         </div>
         {similares === null && !loadingSimilares && (
-          <p className="text-sm text-muted-foreground/60">Clique em "Verificar agora" para identificar artefatos com funcionalidades sobrepostas.</p>
+          <div className="flex flex-col items-center gap-3 py-4">
+            <p className="text-sm text-muted-foreground/70 text-center">Verifique se já existe um artefato parecido aprovado no catálogo.</p>
+            <button
+              onClick={fetchSimilares}
+              className="flex items-center gap-2 px-5 py-2.5 bg-primary/10 border border-primary/30 text-primary text-sm font-medium rounded-lg hover:bg-primary/20 hover:border-primary/50 transition-all"
+            >
+              <Merge className="h-4 w-4" />
+              Verificar artefatos similares
+            </button>
+          </div>
         )}
         {loadingSimilares && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
             <div className="h-4 w-4 rounded-full border-2 border-border/40 border-t-primary animate-spin" />
             Comparando com artefatos do catálogo...
           </div>
