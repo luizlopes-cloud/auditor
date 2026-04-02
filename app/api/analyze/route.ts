@@ -362,6 +362,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ laudo_id: laudo.id, artifact_id: artifact!.id, resultado: laudoResult.resultado, score: laudoResult.score, version, sem_github: semGithub, org_externa: orgExterna, replaced, content_changed: contentChanged, lovable_project_id: lovableProjectId })
   } catch (err) {
     console.error('[analyze] unhandled error:', err)
+    const msg = String(err)
+    if (msg.includes('fetch') || msg.includes('ENOTFOUND') || msg.includes('Invalid URL') || msg.includes('Unable to connect') || msg.includes('Não foi possível acessar') || msg.includes('getaddrinfo') || msg.includes('ECONNREFUSED') || msg.includes('timeout')) {
+      return NextResponse.json({ error: 'Link inválido ou inacessível. Verifique a URL e tente novamente.' }, { status: 400 })
+    }
     return NextResponse.json({ error: 'Erro interno. Tente novamente.' }, { status: 500 })
   }
 }
