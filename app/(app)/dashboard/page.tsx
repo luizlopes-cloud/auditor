@@ -27,7 +27,7 @@ async function getDashboardData() {
       .from('laudos')
       .select('id, resultado, score, resumo, created_at, artifacts(id, name, type, submitted_by, preview_url)')
       .order('created_at', { ascending: false })
-      .limit(6),
+      .limit(50),
     supabase
       .from('laudos')
       .select('resultado, score, created_at, artifacts(submitted_by, type)')
