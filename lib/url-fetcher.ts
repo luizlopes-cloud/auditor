@@ -9,15 +9,16 @@ export function detectEditorUrl(url: string): string | null {
   const path = parsed.pathname.toLowerCase()
 
 
-  // Lovable editor: lovable.dev/projects/... ou lovable.dev sem subdomínio
+  // Lovable editor: aceita lovable.dev/projects/{id}, bloqueia só magic_link e URLs sem projeto
   if (host === 'lovable.dev' || host === 'www.lovable.dev') {
     if (parsed.searchParams.has('magic_link')) {
       return 'Este é um link de convite do Lovable, não da aplicação publicada. Para analisar, abra o projeto, clique em "Share" e cole o link da app (ex: meu-projeto.lovable.app).'
     }
-    if (path.startsWith('/projects')) {
-      return 'Este é o link do editor Lovable, não da aplicação publicada. Clique em "Share" dentro do projeto e cole o link da app (ex: meu-projeto.lovable.app).'
+    // Aceita lovable.dev/projects/{uuid} — vamos extrair o project_id no analyze
+    if (path.match(/^\/projects\/[a-f0-9-]{36}/)) {
+      return null // Aceito!
     }
-    return 'URL inválida para análise. Cole o link da aplicação publicada (ex: meu-projeto.lovable.app), não do editor.'
+    return 'URL inválida. Cole o link do projeto (lovable.dev/projects/...) ou da app publicada (meu-projeto.lovable.app).'
   }
 
   // V0 editor: v0.dev
@@ -63,7 +64,7 @@ export function detectUrlType(url: string): UrlType {
       if (parts.length >= 5 && parts[2] === 'blob') return 'github-file'
       return 'github-repo'
     }
-    if (host.endsWith('.lovable.app') || host.endsWith('.lovable.dev') || host === 'lovable.app') return 'lovable'
+    if (host.endsWith('.lovable.app') || host.endsWith('.lovable.dev') || host === 'lovable.app' || host === 'lovable.dev' || host === 'www.lovable.dev') return 'lovable'
     if (host.endsWith('.vercel.app')) return 'vercel'
     return 'external'
   } catch {

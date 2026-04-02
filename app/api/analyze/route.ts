@@ -53,12 +53,18 @@ export async function POST(req: NextRequest) {
       })()
       const isPreview = fetchUrl.includes('__lovable_token') || new URL(fetchUrl).hostname.startsWith('preview--')
 
-      // Extrai project_id do Lovable JWT (se presente)
+      // Extrai project_id do Lovable (JWT ou path /projects/{id})
       try {
-        const tokenParam = new URL(fetchUrl).searchParams.get('__lovable_token')
+        const parsedUrl = new URL(fetchUrl)
+        const tokenParam = parsedUrl.searchParams.get('__lovable_token')
         if (tokenParam) {
           const payload = JSON.parse(Buffer.from(tokenParam.split('.')[1], 'base64').toString())
           lovableProjectId = payload.project_id ?? null
+        }
+        // lovable.dev/projects/{uuid}
+        const pathMatch = parsedUrl.pathname.match(/\/projects\/([a-f0-9-]{36})/)
+        if (pathMatch && !lovableProjectId) {
+          lovableProjectId = pathMatch[1]
         }
       } catch {}
 
@@ -87,8 +93,31 @@ export async function POST(req: NextRequest) {
         if (repoContent.packageJson) {
           analysisContext += `\n### Dependências\n\`\`\`\n${repoContent.packageJson.slice(0, 2000)}\n\`\`\``
         }
+      } else if (new URL(fetchUrl).hostname === 'lovable.dev' || new URL(fetchUrl).hostname === 'www.lovable.dev') {
+        // Lovable editor URL — não dá pra fetch o conteúdo, mas temos o project_id
+        artifactSourceUrl = cleanUrl
+        artifactSource = 'url'
+        artifactName = name?.trim() || 'Projeto Lovable'
+        artifactType = 'outro'
+        semGithub = !github_url?.trim()
+        artifactContent = `Projeto Lovable (ID: ${lovableProjectId ?? 'desconhecido'})\nURL do editor: ${cleanUrl}\nDescrição: ${description ?? 'Não informada'}`
+
+        if (github_url?.trim()) {
+          const parsedGh = parseGitHubUrl(github_url.trim())
+          if (parsedGh && !ORGS_APROVADAS.includes(parsedGh.owner.toLowerCase())) orgExterna = true
+          try {
+            const repoContent = await fetchRepoContent(github_url.trim())
+            artifactGithubUrl = github_url.trim()
+            artifactContent = repoContent.mainFiles.map((f: any) => `// ${f.path}\n${f.content}`).join('\n\n')
+            if (repoContent.readme) artifactContent = `## README\n${repoContent.readme}\n\n${artifactContent}`
+            artifactName = name?.trim() || parsedGh?.repo || 'Projeto Lovable'
+            semGithub = false
+          } catch {}
+        }
+
+        analysisContext = buildAnalysisContext(artifactName, artifactContent, description ?? '', { url: cleanUrl })
       } else {
-        // Lovable / Vercel / externo
+        // Lovable app / Vercel / externo
         const fetched = await fetchUrlContent(fetchUrl)
         artifactSourceUrl = cleanUrl
         artifactSource = 'url'
