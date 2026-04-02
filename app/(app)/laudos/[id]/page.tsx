@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ScoreBadge } from '@/components/ScoreBadge'
 import { CheckItem } from '@/components/CheckItem'
-import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion, ArrowLeft, ExternalLink, Trash2, Merge, RotateCcw, Link2, CheckCircle2, XCircle, MessageSquare, Send, Pencil } from 'lucide-react'
+import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion, ArrowLeft, ExternalLink, Trash2, Merge, RotateCcw, Link2, CheckCircle2, XCircle, MessageSquare, Send, Pencil, ChevronDown, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 type Check = {
@@ -55,13 +55,14 @@ export default function LaudoDetailPage() {
   // Re-analyze
   const [reanalyzing, setReanalyzing] = useState(false)
 
-  // Similar artifacts
+  // Similar artifacts — auto-trigger on load
   const [similares, setSimilares] = useState<{ id: string; motivo: string; recomendacao: string }[] | null>(null)
-  const [loadingSimilares, setLoadingSimilares] = useState(false)
+  const [loadingSimilares, setLoadingSimilares] = useState(true)
 
-  // Funcionalidades deep dive
+  // Funcionalidades deep dive — auto-trigger on load, starts collapsed
   const [funcionalidades, setFuncionalidades] = useState<any[] | null>(null)
-  const [loadingFunc, setLoadingFunc] = useState(false)
+  const [loadingFunc, setLoadingFunc] = useState(true)
+  const [funcOpen, setFuncOpen] = useState(false)
 
   // Comments
   const [comentarios, setComentarios] = useState<Comentario[]>([])
@@ -85,6 +86,20 @@ export default function LaudoDetailPage() {
       })
       .catch(() => setError('Erro ao carregar laudo'))
       .finally(() => setLoading(false))
+
+    // Auto-load similares
+    fetch(`/api/laudos/${id}/similar`)
+      .then(r => r.json())
+      .then(d => setSimilares(d.similares ?? []))
+      .catch(() => setSimilares([]))
+      .finally(() => setLoadingSimilares(false))
+
+    // Auto-load funcionalidades
+    fetch(`/api/laudos/${id}/funcionalidades`, { method: 'POST' })
+      .then(r => r.json())
+      .then(d => setFuncionalidades(d.funcionalidades ?? []))
+      .catch(() => setFuncionalidades([]))
+      .finally(() => setLoadingFunc(false))
 
     // Load comments
     setLoadingComentarios(true)
@@ -451,67 +466,44 @@ export default function LaudoDetailPage() {
         )}
       </div>
 
-      {/* Mapeamento de funcionalidades */}
-      <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6">
-        <div className="flex items-center gap-2 mb-4">
-          <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold text-foreground">Funcionalidades do artefato</h2>
-        </div>
-        {funcionalidades === null && !loadingFunc && (
-          <div className="flex flex-col items-center gap-3 py-4">
-            <p className="text-sm text-muted-foreground/70 text-center">Mapeamento profundo de todas as features, telas, filtros, formulários e integrações.</p>
-            <button
-              onClick={() => {
-                setLoadingFunc(true)
-                fetch(`/api/laudos/${id}/funcionalidades`, { method: 'POST' })
-                  .then(r => r.json())
-                  .then(d => setFuncionalidades(d.funcionalidades ?? []))
-                  .catch(() => setFuncionalidades([]))
-                  .finally(() => setLoadingFunc(false))
-              }}
-              className="flex items-center gap-2 px-5 py-2.5 bg-primary/10 border border-primary/30 text-primary text-sm font-medium rounded-lg hover:bg-primary/20 hover:border-primary/50 transition-all"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              Mapear funcionalidades
-            </button>
-          </div>
-        )}
-        {loadingFunc && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
-            <div className="h-4 w-4 rounded-full border-2 border-border/40 border-t-primary animate-spin" />
-            Analisando funcionalidades em profundidade...
-          </div>
-        )}
-        {funcionalidades !== null && funcionalidades.length === 0 && (
-          <p className="text-sm text-muted-foreground/60">Nenhuma funcionalidade mapeada.</p>
-        )}
-        {funcionalidades !== null && funcionalidades.length > 0 && (
-          <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">{funcionalidades.length} funcionalidades encontradas</p>
+      {/* Mapeamento de funcionalidades — dropdown colapsável */}
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden mb-6">
+        <button
+          onClick={() => funcionalidades && funcionalidades.length > 0 && setFuncOpen(v => !v)}
+          className="w-full flex items-center gap-3 px-6 py-4 text-left hover:bg-accent/30 transition-colors"
+        >
+          <LayoutDashboard className="h-4 w-4 text-primary shrink-0" />
+          <h2 className="text-sm font-semibold text-foreground flex-1">Funcionalidades do artefato</h2>
+          {loadingFunc && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="h-3.5 w-3.5 rounded-full border-2 border-border/40 border-t-primary animate-spin" />
+              Mapeando...
+            </div>
+          )}
+          {funcionalidades && funcionalidades.length > 0 && (
+            <span className="text-xs text-muted-foreground">{funcionalidades.length} features</span>
+          )}
+          {funcionalidades && funcionalidades.length > 0 && (
+            funcOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+          )}
+        </button>
+        {funcOpen && funcionalidades && funcionalidades.length > 0 && (
+          <div className="px-6 pb-5 space-y-3 border-t border-border/50 pt-4">
             {funcionalidades.map((f: any, i: number) => {
               const tipoColors: Record<string, string> = {
-                tela: 'bg-blue-900/50 text-blue-300',
-                filtro: 'bg-violet-900/50 text-violet-300',
-                formulario: 'bg-emerald-900/50 text-emerald-300',
-                tabela: 'bg-cyan-900/50 text-cyan-300',
-                grafico: 'bg-pink-900/50 text-pink-300',
-                botao: 'bg-orange-900/50 text-orange-300',
-                modal: 'bg-amber-900/50 text-amber-300',
-                navegacao: 'bg-slate-700/50 text-slate-300',
-                integracao: 'bg-indigo-900/50 text-indigo-300',
-                auth: 'bg-red-900/50 text-red-300',
+                tela: 'bg-blue-900/50 text-blue-300', filtro: 'bg-violet-900/50 text-violet-300',
+                formulario: 'bg-emerald-900/50 text-emerald-300', tabela: 'bg-cyan-900/50 text-cyan-300',
+                grafico: 'bg-pink-900/50 text-pink-300', botao: 'bg-orange-900/50 text-orange-300',
+                modal: 'bg-amber-900/50 text-amber-300', navegacao: 'bg-slate-700/50 text-slate-300',
+                integracao: 'bg-indigo-900/50 text-indigo-300', auth: 'bg-red-900/50 text-red-300',
               }
               const statusColors: Record<string, string> = {
-                completa: 'text-emerald-400',
-                parcial: 'text-amber-400',
-                placeholder: 'text-red-400',
-                nao_verificavel: 'text-muted-foreground',
+                completa: 'text-emerald-400', parcial: 'text-amber-400',
+                placeholder: 'text-red-400', nao_verificavel: 'text-muted-foreground',
               }
               const statusLabels: Record<string, string> = {
-                completa: 'Completa',
-                parcial: 'Parcial',
-                placeholder: 'Placeholder',
-                nao_verificavel: 'Não verificável',
+                completa: 'Completa', parcial: 'Parcial',
+                placeholder: 'Placeholder', nao_verificavel: 'Não verificável',
               }
               return (
                 <div key={i} className="rounded-lg border border-border/50 p-4 space-y-2">
@@ -531,31 +523,19 @@ export default function LaudoDetailPage() {
         )}
       </div>
 
-      {/* Artefatos similares */}
+      {/* Artefatos similares — auto-loaded */}
       <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6">
         <div className="flex items-center gap-2 mb-4">
           <Merge className="h-4 w-4 text-muted-foreground" />
           <h2 className="text-sm font-semibold text-foreground">Artefatos similares</h2>
+          {loadingSimilares && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground ml-auto">
+              <div className="h-3.5 w-3.5 rounded-full border-2 border-border/40 border-t-primary animate-spin" />
+              Comparando...
+            </div>
+          )}
         </div>
-        {similares === null && !loadingSimilares && (
-          <div className="flex flex-col items-center gap-3 py-4">
-            <p className="text-sm text-muted-foreground/70 text-center">Verifique se já existe um artefato parecido aprovado no catálogo.</p>
-            <button
-              onClick={fetchSimilares}
-              className="flex items-center gap-2 px-5 py-2.5 bg-primary/10 border border-primary/30 text-primary text-sm font-medium rounded-lg hover:bg-primary/20 hover:border-primary/50 transition-all"
-            >
-              <Merge className="h-4 w-4" />
-              Verificar artefatos similares
-            </button>
-          </div>
-        )}
-        {loadingSimilares && (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
-            <div className="h-4 w-4 rounded-full border-2 border-border/40 border-t-primary animate-spin" />
-            Comparando com artefatos do catálogo...
-          </div>
-        )}
-        {similares !== null && similares.length === 0 && (
+        {!loadingSimilares && similares !== null && similares.length === 0 && (
           <p className="text-sm text-muted-foreground/60">Nenhum artefato similar encontrado no catálogo.</p>
         )}
         {similares !== null && similares.length > 0 && (
