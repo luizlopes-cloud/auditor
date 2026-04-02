@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { ScoreBadge } from '@/components/ScoreBadge'
 import { Search, FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion, MessageCircleQuestion } from 'lucide-react'
-import { FloatingAssistant } from '@/components/FloatingAssistant'
 
 const typeIcon: Record<string, React.ElementType> = {
   script: FileCode2, planilha: FileSpreadsheet, flow: GitBranch,
@@ -19,8 +18,6 @@ const TYPES = ['todos', 'script', 'planilha', 'flow', 'dashboard', 'query', 'out
 export function CatalogClient({ artifacts }: { artifacts: any[] }) {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('todos')
-  const [assistantOpen, setAssistantOpen] = useState(false)
-
   const filtered = useMemo(() => {
     return artifacts.filter(a => {
       const matchType = typeFilter === 'todos' || a.type === typeFilter
@@ -75,7 +72,7 @@ export function CatalogClient({ artifacts }: { artifacts: any[] }) {
               : 'Nenhum resultado para esses filtros.'}
           </p>
           <button
-            onClick={() => setAssistantOpen(true)}
+            onClick={() => document.querySelector<HTMLButtonElement>('[aria-label="Assistente"]')?.click()}
             className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
           >
             <MessageCircleQuestion className="h-4 w-4" />
@@ -117,7 +114,7 @@ export function CatalogClient({ artifacts }: { artifacts: any[] }) {
           {/* CTA assistente */}
           <div className="flex items-center justify-center">
             <button
-              onClick={() => setAssistantOpen(true)}
+              onClick={() => document.querySelector<HTMLButtonElement>('[aria-label="Assistente"]')?.click()}
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <MessageCircleQuestion className="h-4 w-4" />
@@ -126,13 +123,6 @@ export function CatalogClient({ artifacts }: { artifacts: any[] }) {
           </div>
         </>
       )}
-
-      <FloatingAssistant
-        context={{ page: 'catalog' }}
-        initialMessage="O que você está procurando? Posso te ajudar a encontrar artefatos aprovados no catálogo."
-        forceOpen={assistantOpen}
-        onClose={() => setAssistantOpen(false)}
-      />
     </div>
   )
 }

@@ -7,8 +7,8 @@ const openrouter = createOpenAI({
   apiKey: process.env.OPENROUTER_API_KEY ?? '',
 })
 
-const MODEL_PRIMARY = process.env.OPENROUTER_MODEL ?? 'google/gemini-2.5-flash'
-const MODEL_FALLBACK = process.env.OPENROUTER_FALLBACK_MODEL ?? 'google/gemini-2.0-flash-001'
+const MODEL_PRIMARY = process.env.OPENROUTER_MODEL ?? 'google/gemini-2.0-flash-001'
+const MODEL_FALLBACK = process.env.OPENROUTER_FALLBACK_MODEL ?? 'google/gemini-flash-1.5'
 
 const CheckSchema = z.object({
   categoria: z.string(),
