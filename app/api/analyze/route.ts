@@ -114,30 +114,12 @@ export async function POST(req: NextRequest) {
           } catch {}
           analysisContext = buildAnalysisContext(artifactName, artifactContent, description ?? '', { url: cleanUrl })
         } else {
-          // Sem GitHub — registra sem análise, retorna direto com botão de conectar
-          const supabase = await createClient()
-          const insertData: Record<string, unknown> = {
-            name: artifactName, type: artifactType, source: 'url',
-            source_url: cleanUrl, description: description ?? null,
-            submitted_by: (submitted_by || 'Anônimo').trim(), status: 'pending',
-          }
-          if (lovableProjectId) insertData.lovable_project_id = lovableProjectId
-          const { data: art, error: artErr } = await supabase.from('artifacts').insert(insertData as any).select().single()
-          if (artErr || !art) return NextResponse.json({ error: 'Erro ao registrar artefato' }, { status: 500 })
-
-          // Cria laudo placeholder
-          const { data: laudoData } = await supabase.from('laudos').insert({
-            artifact_id: art.id, resultado: 'ajustes_necessarios', score: 0,
-            resumo: 'Aguardando conexão com GitHub para análise completa. Conecte o repositório e re-analise.',
-            checks: [{ categoria: 'Pré-requisito', item: 'Código-fonte', status: 'erro', detalhe: 'Sem acesso ao código. Conecte o GitHub do projeto para uma análise completa.', sugestao: 'Use o botão "Conectar GitHub no Lovable" abaixo.' }],
-            model_used: 'none', tempo_analise_ms: 0,
-          } as any).select().single()
-
+          // Sem GitHub — não cria nada, retorna erro com instruções
           return NextResponse.json({
-            laudo_id: laudoData?.id, artifact_id: art.id,
-            resultado: 'ajustes_necessarios', score: 0,
-            sem_github: true, lovable_project_id: lovableProjectId,
-          })
+            error: 'link_editor',
+            message: 'Este é o link do editor. Para analisar, use o link de preview ou conecte o GitHub.',
+            lovable_project_id: lovableProjectId,
+          }, { status: 422 })
         }
       } else {
         // Lovable app / Vercel / externo

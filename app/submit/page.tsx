@@ -169,6 +169,7 @@ export default function SubmitPage() {
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ laudo_id: string; artifact_id?: string; resultado: string; score: number; sem_github?: boolean; org_externa?: boolean; replaced?: boolean; content_changed?: boolean; version?: number } | null>(null)
   const [duplicate, setDuplicate] = useState<{ laudo_id: string; artifact_id: string; has_github?: boolean; lovable_project_id?: string } | null>(null)
+  const [editorBlock, setEditorBlock] = useState<{ lovable_project_id?: string } | null>(null)
 
   const detectHint = (u: string) => {
     if (!u) return null
@@ -222,6 +223,11 @@ export default function SubmitPage() {
         setLoading(false)
         return
       }
+      if (res.status === 422 && data.error === 'link_editor') {
+        setEditorBlock({ lovable_project_id: data.lovable_project_id })
+        setLoading(false)
+        return
+      }
       if (!res.ok) { setError(data.error ?? 'Erro desconhecido'); setLoading(false); return }
       setResult(data)
     } catch {
@@ -251,7 +257,51 @@ export default function SubmitPage() {
       <main className="flex-1 flex items-center justify-center px-6 py-16">
         <div className="w-full max-w-xl">
 
-          {duplicate ? (
+          {editorBlock ? (
+            <div className="text-center space-y-6 animate-in fade-in duration-500">
+              <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-950/50 mx-auto">
+                <GitBranch className="h-8 w-8 text-amber-400" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Link do editor detectado</h1>
+                <p className="text-muted-foreground mt-1">Para analisar, precisamos do link de preview ou do GitHub.</p>
+              </div>
+
+              <div className="bg-amber-950/30 border border-amber-700/40 rounded-2xl p-5 text-left space-y-3">
+                {editorBlock.lovable_project_id && (
+                  <a
+                    href={`https://lovable.dev/projects/${editorBlock.lovable_project_id}/settings/integrations?connector=github&subtab=connectors`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-600 text-white text-sm font-medium rounded-xl hover:bg-amber-500 transition-colors"
+                  >
+                    <GitBranch className="h-4 w-4" />
+                    Conectar GitHub no Lovable
+                  </a>
+                )}
+
+                <p className="text-xs font-medium text-amber-300/70 pt-1">Ou copie o link de preview:</p>
+                <div className="space-y-2 text-xs text-amber-300/60">
+                  <p><span className="text-amber-300 font-medium">1.</span> No editor, clique em <span className="font-medium text-amber-300">Share</span>:</p>
+                </div>
+                <div className="rounded-md overflow-hidden border border-amber-700/30 max-w-[200px]">
+                  <img src="/guide-lovable-toolbar.jpg" alt="Barra do Lovable" className="w-full h-auto" />
+                </div>
+                <div className="text-xs text-amber-300/60">
+                  <p><span className="text-amber-300 font-medium">2.</span> Clique em <span className="font-medium text-amber-300">Share preview</span> e copie o link:</p>
+                </div>
+                <div className="rounded-md overflow-hidden border border-amber-700/30 max-w-[240px]">
+                  <img src="/guide-lovable-share.jpg" alt="Painel Share" className="w-full h-auto" />
+                </div>
+              </div>
+
+              <button
+                onClick={() => { setEditorBlock(null); setUrl('') }}
+                className="w-full px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+              >
+                Voltar e colar o link correto
+              </button>
+            </div>
+          ) : duplicate ? (
             <div className="text-center space-y-6 animate-in fade-in duration-500">
               <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-amber-950/50 mx-auto">
                 <GitBranch className="h-8 w-8 text-amber-400" />
