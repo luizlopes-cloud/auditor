@@ -78,7 +78,7 @@ async function getDashboardData() {
     if (!weekData.has(key)) { weekKeys.push(key); weekData.set(key, { total: 0, soma: 0 }) }
   }
   for (const l of allLaudos ?? []) {
-    const key = getWeekStart(new Date(l.created_at))
+    const key = getWeekStart(new Date(l.created_at ?? ''))
     if (weekData.has(key)) { const cur = weekData.get(key)!; cur.total++; cur.soma += l.score ?? 0 }
   }
   const tendencia = weekKeys.map(key => {

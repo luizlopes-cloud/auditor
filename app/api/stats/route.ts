@@ -83,7 +83,7 @@ export async function GET() {
     }
 
     for (const l of laudos) {
-      const key = getWeekStart(new Date(l.created_at))
+      const key = getWeekStart(new Date(l.created_at ?? ''))
       if (weekData.has(key)) {
         const cur = weekData.get(key)!
         cur.total++
