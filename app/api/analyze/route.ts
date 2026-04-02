@@ -180,7 +180,17 @@ export async function POST(req: NextRequest) {
         artifactSource = 'url'
         if (fetched.previewUrl) previewUrl = fetched.previewUrl
 
-        const effectiveGithubUrl = github_url?.trim() || fetched.detectedGithubUrl
+        // Auto-detecta GitHub via Vercel API (deployment meta)
+        let autoGithub: string | null = null
+        if (!github_url?.trim() && !fetched.detectedGithubUrl && cleanUrl.includes('.vercel.app')) {
+          try {
+            const { detectGithubFromVercel } = await import('@/lib/vercel-github')
+            autoGithub = await detectGithubFromVercel(cleanUrl)
+            if (autoGithub) console.log('[analyze] Auto-detected GitHub from Vercel:', autoGithub)
+          } catch {}
+        }
+
+        const effectiveGithubUrl = github_url?.trim() || fetched.detectedGithubUrl || autoGithub
         if (effectiveGithubUrl) {
           const parsedGh = parseGitHubUrl(effectiveGithubUrl)
           if (parsedGh && !ORGS_APROVADAS.includes(parsedGh.owner.toLowerCase())) orgExterna = true
