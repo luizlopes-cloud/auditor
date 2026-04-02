@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ScoreBadge } from './ScoreBadge'
-import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion, Trash2 } from 'lucide-react'
+import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion, Trash2, Pencil, Check, X } from 'lucide-react'
 
 type Resultado = 'aprovado' | 'ajustes_necessarios' | 'reprovado'
 type ArtifactType = 'script' | 'planilha' | 'flow' | 'dashboard' | 'query' | 'outro'
@@ -20,6 +20,7 @@ const typeIcon: Record<ArtifactType, React.ElementType> = {
 
 interface LaudoCardProps {
   id: string
+  artifactId: string
   name: string
   type: ArtifactType
   resultado: Resultado
@@ -29,12 +30,30 @@ interface LaudoCardProps {
   createdAt: string
 }
 
-export function LaudoCard({ id, name, type, resultado, score, resumo, submittedBy, createdAt }: LaudoCardProps) {
+export function LaudoCard({ id, artifactId, name, type, resultado, score, resumo, submittedBy, createdAt }: LaudoCardProps) {
   const router = useRouter()
   const Icon = typeIcon[type] ?? FileQuestion
   const date = new Date(createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
   const [confirm, setConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editName, setEditName] = useState(name)
+  const [saving, setSaving] = useState(false)
+
+  const handleSaveName = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!editName.trim() || editName === name) { setEditing(false); return }
+    setSaving(true)
+    await fetch(`/api/artifacts/${artifactId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editName }),
+    })
+    setSaving(false)
+    setEditing(false)
+    router.refresh()
+  }
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -52,8 +71,34 @@ export function LaudoCard({ id, name, type, resultado, score, resumo, submittedB
             <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
               <Icon className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div className="min-w-0">
-              <p className="font-semibold text-foreground truncate">{name}</p>
+            <div className="min-w-0 flex-1">
+              {editing ? (
+                <div className="flex items-center gap-1.5" onClick={e => e.preventDefault()}>
+                  <input
+                    autoFocus
+                    value={editName}
+                    onChange={e => setEditName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleSaveName(e as any); if (e.key === 'Escape') setEditing(false) }}
+                    className="flex-1 min-w-0 text-sm font-semibold bg-white text-slate-900 border border-primary/60 rounded px-2 py-0.5 focus:outline-none"
+                  />
+                  <button onClick={handleSaveName} disabled={saving} className="text-emerald-400 hover:text-emerald-300 shrink-0">
+                    <Check className="h-3.5 w-3.5" />
+                  </button>
+                  <button onClick={e => { e.preventDefault(); setEditing(false) }} className="text-muted-foreground/50 hover:text-muted-foreground shrink-0">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 group/name">
+                  <p className="font-semibold text-foreground truncate">{editName}</p>
+                  <button
+                    onClick={e => { e.preventDefault(); setEditing(true) }}
+                    className="opacity-0 group-hover/name:opacity-100 text-muted-foreground/40 hover:text-muted-foreground transition-opacity shrink-0"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">{submittedBy} · {date}</p>
             </div>
           </div>

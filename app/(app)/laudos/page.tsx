@@ -113,6 +113,7 @@ export default async function LaudosPage({ searchParams }: PageProps) {
               <LaudoCard
                 key={laudo.id}
                 id={laudo.id}
+                artifactId={artifact.id}
                 name={artifact.name}
                 type={artifact.type as 'script' | 'planilha' | 'flow' | 'dashboard' | 'query' | 'outro'}
                 resultado={laudo.resultado as 'aprovado' | 'ajustes_necessarios' | 'reprovado'}
