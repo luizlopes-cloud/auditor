@@ -38,17 +38,19 @@ export async function POST(req: NextRequest) {
       const editorError = detectEditorUrl(url)
       if (editorError) return NextResponse.json({ error: editorError }, { status: 400 })
 
-      // Remove tokens de auth da URL antes de qualquer uso (nunca armazenar)
+      // URL original (com tokens) para fetch, limpa para armazenar
+      const fetchUrl = url.trim()
       const cleanUrl = (() => {
         try {
-          const u = new URL(url)
+          const u = new URL(fetchUrl)
           u.searchParams.delete('__lovable_token')
           u.searchParams.delete('magic_link')
           u.searchParams.delete('token')
           u.searchParams.delete('access_token')
           return u.toString()
-        } catch { return url }
+        } catch { return fetchUrl }
       })()
+      const isPreview = fetchUrl.includes('__lovable_token') || new URL(fetchUrl).hostname.startsWith('preview--')
 
       const urlType = detectUrlType(cleanUrl)
 
@@ -77,7 +79,7 @@ export async function POST(req: NextRequest) {
         }
       } else {
         // Lovable / Vercel / externo
-        const fetched = await fetchUrlContent(cleanUrl)
+        const fetched = await fetchUrlContent(fetchUrl)
         artifactSourceUrl = cleanUrl
         artifactSource = 'url'
         if (fetched.previewUrl) previewUrl = fetched.previewUrl
