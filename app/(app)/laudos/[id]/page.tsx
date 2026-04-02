@@ -25,6 +25,7 @@ const typeLabel: Record<string, string> = {
   script: 'Script', planilha: 'Planilha', flow: 'Flow',
   dashboard: 'Dashboard', query: 'Query', outro: 'Outro',
 }
+const TARGET_ORG = 'businessoperations-seazone'
 const sourceLabel: Record<string, string> = {
   github: 'GitHub', upload: 'Upload / Código colado', url: 'URL deployada',
 }
@@ -80,6 +81,26 @@ export default function LaudoDetailPage() {
   const [acessos, setAcessos] = useState<Record<string, boolean>>({
     github: false, supabase: false, vercel: false, dominio: false, staging: false,
   })
+
+  // GitHub actions
+  const [githubLoading, setGithubLoading] = useState(false)
+  const [githubResult, setGithubResult] = useState<any>(null)
+
+  const runGithubAction = async (action: string) => {
+    setGithubLoading(true)
+    setGithubResult(null)
+    try {
+      const art = Array.isArray(laudo?.artifacts) ? laudo.artifacts[0] : laudo?.artifacts
+      const res = await fetch(`/api/artifacts/${art?.id}/github`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      const data = await res.json()
+      setGithubResult(data)
+      if (data.success && data.new_url) router.refresh()
+    } catch { setGithubResult({ error: 'Erro de conexão' }) }
+    finally { setGithubLoading(false) }
+  }
 
   // Um painel aberto por vez
   const [activePanel, setActivePanel] = useState<'ui' | 'code' | 'spec' | 'acessos' | null>(null)
@@ -395,6 +416,63 @@ export default function LaudoDetailPage() {
           {laudo.tempo_analise_ms && <span className="text-xs text-muted-foreground/60">· {(laudo.tempo_analise_ms / 1000).toFixed(1)}s</span>}
         </div>
       </div>
+
+      {/* GitHub actions */}
+      {artifact && !artifact.github_url && (
+        <div className="bg-amber-950/20 border border-amber-700/40 rounded-xl p-5 mb-6 space-y-3">
+          <div className="flex items-center gap-2">
+            <GitBranch className="h-4 w-4 text-amber-400" />
+            <p className="text-sm font-semibold text-amber-300">Projeto sem GitHub</p>
+          </div>
+          <p className="text-xs text-amber-300/70">Conecte ao GitHub para homologação completa:</p>
+          <div className="flex flex-wrap gap-2">
+            {artifact.source_url?.includes('lovable') && (
+              <button onClick={() => runGithubAction('lovable_link')} disabled={githubLoading}
+                className="px-3 py-2 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-500 disabled:opacity-50 transition-colors">
+                Como conectar no Lovable
+              </button>
+            )}
+            <button onClick={() => runGithubAction('create')} disabled={githubLoading}
+              className="px-3 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+              {githubLoading ? 'Criando...' : 'Criar repositório'}
+            </button>
+          </div>
+          {githubResult && (
+            <div className={`text-xs p-3 rounded-lg ${githubResult.error ? 'bg-red-950/40 text-red-300' : 'bg-emerald-950/40 text-emerald-300'}`}>
+              {githubResult.error ?? githubResult.message}
+              {githubResult.new_url && <a href={githubResult.new_url} target="_blank" className="block mt-1 text-primary underline">{githubResult.new_url}</a>}
+              {githubResult.steps && (
+                <ol className="mt-2 space-y-1 list-decimal list-inside">{githubResult.steps.map((s: string, i: number) => <li key={i}>{s}</li>)}</ol>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      {artifact?.github_url && (() => {
+        const match = artifact.github_url.match(/github\.com\/([^/]+)\//)
+        const owner = match?.[1]?.toLowerCase()
+        const isOrgOk = ['seazone-socios', 'businessoperations-seazone', 'seazone'].includes(owner ?? '')
+        if (isOrgOk) return null
+        return (
+          <div className="bg-amber-950/20 border border-amber-700/40 rounded-xl p-5 mb-6 space-y-3">
+            <div className="flex items-center gap-2">
+              <GitBranch className="h-4 w-4 text-amber-400" />
+              <p className="text-sm font-semibold text-amber-300">Repositório fora da organização</p>
+            </div>
+            <p className="text-xs text-amber-300/70">Atualmente em <span className="font-mono">{owner}</span>. Transfira para a org Seazone:</p>
+            <button onClick={() => runGithubAction('transfer')} disabled={githubLoading}
+              className="px-3 py-2 bg-amber-600 text-white text-xs font-medium rounded-lg hover:bg-amber-500 disabled:opacity-50 transition-colors">
+              {githubLoading ? 'Transferindo...' : `Transferir para ${TARGET_ORG}`}
+            </button>
+            {githubResult && (
+              <div className={`text-xs p-3 rounded-lg ${githubResult.error ? 'bg-red-950/40 text-red-300' : 'bg-emerald-950/40 text-emerald-300'}`}>
+                {githubResult.error ?? githubResult.message}
+                {githubResult.new_url && <a href={githubResult.new_url} target="_blank" className="block mt-1 text-primary underline">{githubResult.new_url}</a>}
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Score + Resultado */}
       <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6">
