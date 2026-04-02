@@ -28,6 +28,7 @@ export default function AuditarPage() {
   const [loadingStep, setLoadingStep] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ laudo_id: string; resultado: string; score: number } | null>(null)
+  const [duplicate, setDuplicate] = useState<{ laudo_id: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [url, setUrl] = useState('')
@@ -63,6 +64,7 @@ export default function AuditarPage() {
     e.preventDefault()
     setError(null)
     setResult(null)
+    setDuplicate(null)
     setLoading(true)
     setLoadingStep(0)
 
@@ -94,6 +96,12 @@ export default function AuditarPage() {
 
       setLoadingStep(2)
       const data = await res.json()
+
+      if (res.status === 409) {
+        setDuplicate({ laudo_id: data.existing_laudo_id })
+        setLoading(false)
+        return
+      }
 
       if (!res.ok) {
         setError(data.error ?? 'Erro desconhecido')
@@ -277,6 +285,21 @@ export default function AuditarPage() {
               <input type="text" value={submittedBy} onChange={e => setSubmittedBy(e.target.value)} placeholder="Seu nome ou equipe" required className={inputCls} />
             </div>
           </div>
+
+          {duplicate && (
+            <div className="rounded-lg border border-amber-700/50 bg-amber-950/40 px-4 py-3 text-sm text-amber-300 flex items-center justify-between gap-3">
+              <span>Este artefato já foi analisado anteriormente.</span>
+              {duplicate.laudo_id && (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/laudos/${duplicate.laudo_id}`)}
+                  className="shrink-0 text-amber-300 underline hover:text-amber-200"
+                >
+                  Ver laudo existente →
+                </button>
+              )}
+            </div>
+          )}
 
           {error && (
             <div className="rounded-lg border border-red-800/50 bg-red-950/40 px-4 py-3 text-sm text-red-300">

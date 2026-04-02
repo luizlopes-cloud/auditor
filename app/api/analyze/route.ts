@@ -135,6 +135,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Modo inválido. Use: url, code ou file' }, { status: 400 })
     }
 
+    // ── Verificar duplicata exata ──────────────────────────────────────────
+    if (artifactSourceUrl || artifactGithubUrl) {
+      const orConditions: string[] = []
+      if (artifactSourceUrl) orConditions.push(`source_url.eq.${artifactSourceUrl}`)
+      if (artifactGithubUrl) orConditions.push(`github_url.eq.${artifactGithubUrl}`)
+
+      const { data: existing } = await supabase
+        .from('artifacts')
+        .select('id, laudos(id)')
+        .or(orConditions.join(','))
+        .limit(1)
+        .maybeSingle()
+
+      if (existing) {
+        const laudos = existing.laudos as { id: string }[] | { id: string } | null
+        const existingLaudoId = Array.isArray(laudos) ? laudos[0]?.id : laudos?.id
+        return NextResponse.json({
+          error: 'Este artefato já foi analisado anteriormente.',
+          existing_laudo_id: existingLaudoId ?? null,
+        }, { status: 409 })
+      }
+    }
+
     // ── Persistir artefato ─────────────────────────────────────────────────
     const { data: artifact, error: artifactError } = await supabase
       .from('artifacts')

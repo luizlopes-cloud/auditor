@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ScoreBadge } from '@/components/ScoreBadge'
 import { CheckItem } from '@/components/CheckItem'
-import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion, ArrowLeft, ExternalLink, Trash2 } from 'lucide-react'
+import { FileCode2, FileSpreadsheet, GitBranch, LayoutDashboard, Database, FileQuestion, ArrowLeft, ExternalLink, Trash2, Merge } from 'lucide-react'
 import Link from 'next/link'
 
 type Check = {
@@ -49,6 +49,8 @@ export default function LaudoDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [similares, setSimilares] = useState<{ id: string; motivo: string; recomendacao: string }[] | null>(null)
+  const [loadingSimilares, setLoadingSimilares] = useState(false)
 
   useEffect(() => {
     fetch(`/api/laudos/${id}`)
@@ -60,6 +62,16 @@ export default function LaudoDetailPage() {
       .catch(() => setError('Erro ao carregar laudo'))
       .finally(() => setLoading(false))
   }, [id])
+
+  const fetchSimilares = () => {
+    if (similares !== null || loadingSimilares) return
+    setLoadingSimilares(true)
+    fetch(`/api/laudos/${id}/similar`)
+      .then(r => r.json())
+      .then(d => setSimilares(d.similares ?? []))
+      .catch(() => setSimilares([]))
+      .finally(() => setLoadingSimilares(false))
+  }
 
   const handleDelete = async () => {
     setDeleting(true)
@@ -213,6 +225,63 @@ export default function LaudoDetailPage() {
           size="lg"
         />
         <p className="mt-4 text-foreground/80">{laudo.resumo}</p>
+      </div>
+
+      {/* Artefatos similares */}
+      <div className="bg-card rounded-xl border border-border shadow-sm p-6 mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Merge className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold text-foreground">Artefatos similares</h2>
+          </div>
+          {similares === null && (
+            <button
+              onClick={fetchSimilares}
+              disabled={loadingSimilares}
+              className="text-xs text-primary hover:text-primary/80 font-medium disabled:opacity-50"
+            >
+              {loadingSimilares ? 'Verificando...' : 'Verificar agora'}
+            </button>
+          )}
+        </div>
+
+        {similares === null && !loadingSimilares && (
+          <p className="text-sm text-muted-foreground/60">
+            Clique em "Verificar agora" para identificar artefatos com funcionalidades sobrepostas.
+          </p>
+        )}
+
+        {loadingSimilares && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="h-4 w-4 rounded-full border-2 border-border/40 border-t-primary animate-spin" />
+            Comparando com {'\u2026'} artefatos do catálogo
+          </div>
+        )}
+
+        {similares !== null && similares.length === 0 && (
+          <p className="text-sm text-muted-foreground/60">Nenhum artefato similar encontrado no catálogo.</p>
+        )}
+
+        {similares !== null && similares.length > 0 && (
+          <div className="space-y-3">
+            {similares.map(s => (
+              <div key={s.id} className="rounded-lg border border-amber-700/40 bg-amber-950/20 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <p className="text-sm font-medium text-amber-300">{s.motivo}</p>
+                    <p className="text-xs text-muted-foreground">{s.recomendacao}</p>
+                  </div>
+                  <Link
+                    href={`/laudos/${s.id}`}
+                    className="shrink-0 text-xs text-primary hover:text-primary/80 font-medium"
+                  >
+                    Ver laudo →
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Checks por categoria */}
