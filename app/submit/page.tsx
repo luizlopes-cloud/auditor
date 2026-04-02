@@ -18,7 +18,7 @@ function normalizeUrl(u: string): string {
 
 type Mode = 'url' | 'code' | 'file'
 
-function GithubActions({ artifactId, laudoId, isLovable, lovableProjectId, onLinked }: { artifactId?: string; laudoId?: string; isLovable?: boolean; lovableProjectId?: string; onLinked?: (url: string) => void }) {
+function GithubActions({ artifactId, laudoId, isLovable, isEditorUrl, lovableProjectId, onLinked }: { artifactId?: string; laudoId?: string; isLovable?: boolean; isEditorUrl?: boolean; lovableProjectId?: string; onLinked?: (url: string) => void }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [actionResult, setActionResult] = useState<any>(null)
@@ -131,8 +131,8 @@ function GithubActions({ artifactId, laudoId, isLovable, lovableProjectId, onLin
         </div>
       )}
 
-      {/* Guia visual — como pegar o link correto do Lovable */}
-      {isLovable && (
+      {/* Guia visual — só quando veio do editor, não do preview */}
+      {isLovable && isEditorUrl && (
         <div className="border-t border-amber-700/30 pt-3 space-y-2">
           <p className="text-xs font-medium text-amber-300/70">Ou envie o link de preview para uma analise parcial:</p>
           <div className="space-y-2 text-xs text-amber-300/60">
@@ -406,7 +406,7 @@ export default function SubmitPage() {
                 </div>
               )}
               {result.sem_github && (
-                <GithubActions artifactId={result.artifact_id} laudoId={result.laudo_id} isLovable={url.includes('lovable')} lovableProjectId={(result as any).lovable_project_id} />
+                <GithubActions artifactId={result.artifact_id} laudoId={result.laudo_id} isLovable={url.includes('lovable')} isEditorUrl={url.includes('lovable.dev/')} lovableProjectId={(result as any).lovable_project_id} />
               )}
               <div className="flex flex-col gap-3">
                 <button
